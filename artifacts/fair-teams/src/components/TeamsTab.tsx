@@ -5,7 +5,7 @@ import { generateTeams, recomputeStats } from "@/lib/teamGenerator";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Shuffle, ArrowLeftRight, Download, HelpCircle, Clock, Pencil } from "lucide-react";
+import { Shuffle, ArrowLeftRight, Download, HelpCircle, Clock, Pencil, Users } from "lucide-react";
 import fairTeamsLogo from "@/assets/fairteams-logo.png";
 
 const COLOR_OPTIONS: { value: TeamColor; label: string; hex: string; textHex: string }[] = [
@@ -369,7 +369,7 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
         <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-          <Zap className="w-6 h-6 text-muted-foreground opacity-40" />
+          <Users className="w-6 h-6 text-muted-foreground opacity-40" />
         </div>
         <p className="text-sm text-muted-foreground font-medium">
           Select at least 2 players in the Today tab to generate teams.
