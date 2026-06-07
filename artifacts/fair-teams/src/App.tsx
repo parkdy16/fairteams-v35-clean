@@ -31,6 +31,7 @@ function App() {
       window.clearTimeout(finish);
     };
   }, []);
+
   const [players, setPlayers] = useState<RoomPlayer[]>(() => loadPlayers());
   const [activeTab, setActiveTab] = useState("players");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -91,26 +92,21 @@ function App() {
     );
   }
 
-
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background w-full max-w-md mx-auto relative shadow-2xl overflow-hidden">
-      <header className="px-4 py-3 bg-primary text-primary-foreground flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <img src={fairTeamsLogo} alt="" className="w-7 h-7 object-contain" />
-            <h1 className="text-xl font-black tracking-tight uppercase leading-none">
-              <span className="text-white">FAIR</span><span className="text-[#22C55E]"> TEAMS</span>
-            </h1>
-          </div>
-          <p className="text-[10px] font-bold tracking-widest uppercase opacity-70 mt-0.5">fair football teams · profiles · offline roster</p>
+      <header className="px-3 py-2 bg-primary text-primary-foreground flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <img src={fairTeamsLogo} alt="" className="w-5 h-5 object-contain shrink-0" />
+          <h1 className="text-lg font-bold leading-none truncate">Fair Teams</h1>
         </div>
+
         {activeTab === "players" && (
-          <div className="flex gap-1">
-            <Button variant="secondary" size="icon" className="h-8 w-8" onClick={exportCsv} title="Export Roster" disabled={players.length === 0}>
-              <Download className="w-4 h-4" />
+          <div className="flex gap-1 shrink-0">
+            <Button variant="secondary" size="icon" className="h-7 w-7" onClick={exportCsv} title="Export Roster" disabled={players.length === 0}>
+              <Download className="w-3.5 h-3.5" />
             </Button>
-            <Button variant="secondary" size="icon" className="h-8 w-8" onClick={() => fileInputRef.current?.click()} title="Import Roster">
-              <Upload className="w-4 h-4" />
+            <Button variant="secondary" size="icon" className="h-7 w-7" onClick={() => fileInputRef.current?.click()} title="Import Roster">
+              <Upload className="w-3.5 h-3.5" />
             </Button>
             <input
               ref={fileInputRef}
@@ -133,18 +129,18 @@ function App() {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <div className="sticky top-0 z-20 bg-background border-b border-border p-2">
-          <TabsList className="w-full h-14 bg-muted grid grid-cols-3 rounded-xl p-1 gap-1">
-            <TabsTrigger value="players" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg flex flex-col items-center justify-center gap-1 h-full">
-              <Users className="w-5 h-5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Roster</span>
+        <div className="sticky top-0 z-20 bg-background border-b border-border px-2 py-1">
+          <TabsList className="w-full h-11 bg-muted grid grid-cols-3 rounded-xl p-1 gap-1">
+            <TabsTrigger value="players" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg flex items-center justify-center gap-1.5 h-full">
+              <Users className="w-4 h-4" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Players</span>
             </TabsTrigger>
-            <TabsTrigger value="today" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg flex flex-col items-center justify-center gap-1 h-full">
-              <CalendarCheck className="w-5 h-5" />
+            <TabsTrigger value="today" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg flex items-center justify-center gap-1.5 h-full">
+              <CalendarCheck className="w-4 h-4" />
               <span className="text-[10px] font-bold uppercase tracking-wider">Today</span>
             </TabsTrigger>
-            <TabsTrigger value="teams" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg flex flex-col items-center justify-center gap-1 h-full">
-              <Shield className="w-5 h-5" />
+            <TabsTrigger value="teams" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg flex items-center justify-center gap-1.5 h-full">
+              <Shield className="w-4 h-4" />
               <span className="text-[10px] font-bold uppercase tracking-wider">Teams</span>
             </TabsTrigger>
           </TabsList>
