@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { UserMinus, Plus, Star, Zap, Search, X, Camera, Image, Trash2, Pencil, Shield, Footprints, Activity, Dumbbell, Target, Share2 } from "lucide-react";
+import { UserMinus, Plus, Star, Zap, Search, X, Camera, Image as ImageIcon, Trash2, Pencil, Shield, Footprints, Activity, Dumbbell, Target, Share2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from "recharts";
 
@@ -44,7 +44,7 @@ async function fileToSmallDataUrl(file: File) {
   });
 
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("This photo format is not supported by the browser. Try a JPG or PNG."));
     img.src = dataUrl;
@@ -169,7 +169,7 @@ function ProfileDialog({ player, onUpdate }: { player: RoomPlayer; onUpdate: (da
                   <Camera className="w-3.5 h-3.5 mr-1" /> Take Photo
                 </Button>
                 <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => photoGalleryInput.current?.click()}>
-                  <Image className="w-3.5 h-3.5 mr-1" /> Gallery
+                  <ImageIcon className="w-3.5 h-3.5 mr-1" /> Gallery
                 </Button>
                 {draft.profilePhoto && <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => updateDraft({ profilePhoto: undefined })}><Trash2 className="w-3.5 h-3.5 mr-1" /> Remove</Button>}
               </div>
@@ -355,7 +355,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                     <Camera className="w-3.5 h-3.5 mr-1" /> Take Photo
                   </Button>
                   <Button type="button" variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => addPhotoGalleryInput.current?.click()}>
-                    <Image className="w-3.5 h-3.5 mr-1" /> Gallery
+                    <ImageIcon className="w-3.5 h-3.5 mr-1" /> Gallery
                   </Button>
                   {addPhoto && <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setAddPhoto(undefined)}><Trash2 className="w-3.5 h-3.5 mr-1" /> Remove</Button>}
                 </div>

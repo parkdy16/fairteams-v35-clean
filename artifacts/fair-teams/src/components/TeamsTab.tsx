@@ -110,7 +110,7 @@ function playerInitials(name: string) {
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = src;

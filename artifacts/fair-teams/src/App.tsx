@@ -132,20 +132,8 @@ function App() {
         )}
       </header>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4 pb-24">
-          <TabsContent value="players" className="m-0 data-[state=active]:animate-in data-[state=active]:fade-in-50">
-<PlayersTab players={players} setPlayers={replacePlayers} />
-          </TabsContent>
-          <TabsContent value="today" className="m-0 data-[state=active]:animate-in data-[state=active]:fade-in-50">
-            <TodayTab players={players} setPlayers={replacePlayers} />
-          </TabsContent>
-          <TabsContent value="teams" className="m-0 data-[state=active]:animate-in data-[state=active]:fade-in-50">
-            <TeamsTab players={players} />
-          </TabsContent>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+        <div className="sticky top-0 z-20 bg-background border-b border-border p-2">
           <TabsList className="w-full h-14 bg-muted grid grid-cols-3 rounded-xl p-1 gap-1">
             <TabsTrigger value="players" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg flex flex-col items-center justify-center gap-1 h-full">
               <Users className="w-5 h-5" />
@@ -160,6 +148,18 @@ function App() {
               <span className="text-[10px] font-bold uppercase tracking-wider">Teams</span>
             </TabsTrigger>
           </TabsList>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          <TabsContent value="players" className="m-0 data-[state=active]:animate-in data-[state=active]:fade-in-50">
+            <PlayersTab players={players} setPlayers={replacePlayers} />
+          </TabsContent>
+          <TabsContent value="today" className="m-0 data-[state=active]:animate-in data-[state=active]:fade-in-50">
+            <TodayTab players={players} setPlayers={replacePlayers} />
+          </TabsContent>
+          <TabsContent value="teams" className="m-0 data-[state=active]:animate-in data-[state=active]:fade-in-50">
+            <TeamsTab players={players} />
+          </TabsContent>
         </div>
       </Tabs>
     </div>
