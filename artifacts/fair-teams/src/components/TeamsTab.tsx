@@ -5,7 +5,7 @@ import { generateTeams, recomputeStats } from "@/lib/teamGenerator";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Shuffle, ArrowLeftRight, Download, HelpCircle, Clock, Pencil } from "lucide-react";
+import { Shuffle, ArrowLeftRight, Download, HelpCircle, Clock, Pencil, Zap } from "lucide-react";
 import fairTeamsLogo from "@/assets/fairteams-logo.png";
 
 const COLOR_OPTIONS: { value: TeamColor; label: string; hex: string; textHex: string }[] = [
@@ -439,40 +439,6 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
             </Button>
           </div>
         )}
-
-      {history.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Team History</h3>
-            </div>
-            <button
-              type="button"
-              className="text-[10px] font-bold text-muted-foreground underline"
-              onClick={() => setHistory([])}
-              data-testid="button-clear-history"
-            >
-              Clear
-            </button>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {history.slice(0, 6).map(entry => (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => { setTeams(entry.teams); setFieldSize(entry.fieldSize); setNumTeams(entry.numTeams); setSwap(null); }}
-                className="min-w-[142px] rounded-lg border border-border bg-muted/30 px-3 py-2 text-left active:scale-[0.98] transition-transform"
-                data-testid={`button-history-${entry.id}`}
-              >
-                <p className="text-[11px] font-black text-foreground truncate">{shortDateTime(entry.createdAt)}</p>
-                <p className="text-[10px] font-bold text-muted-foreground capitalize">{entry.fieldSize} · {entry.numTeams} teams</p>
-                <p className="text-[10px] text-muted-foreground">{entry.totalPlayers} players</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       </div>
 
       {/* Swap banner */}
@@ -485,8 +451,6 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
           <button className="text-[10px] text-muted-foreground underline shrink-0" onClick={() => setSwap(null)} data-testid="button-cancel-swap">Cancel</button>
         </div>
       )}
-
-      
 
       {/* Teams grid — 2 columns */}
       {teams.length > 0 && (
@@ -504,7 +468,7 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
               >
                 {/* Header */}
                 <div className="px-2.5 pt-2 pb-1.5" style={{ backgroundColor: col.hex }}>
-                  <div className="flex items-start justify-between gap-1 mb-1">
+                  <div className="flex items-center justify-between gap-1 mb-1">
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="text-xs font-black uppercase tracking-wide leading-tight truncate" style={{ color: col.textHex }}>{team.name}</span>
                       <button
@@ -518,12 +482,9 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
                         <Pencil className="w-3 h-3" />
                       </button>
                     </div>
-                    <span className="text-[9px] font-bold opacity-80 text-right leading-tight shrink-0" style={{ color: col.textHex }}>
-                      {team.players.length}p · Total {team.totalSkill} · Avg {team.averageSkill}
-                    </span>
                   </div>
                   {/* Color swatches */}
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 mb-1">
                     {COLOR_OPTIONS.map(c => (
                       <button
                         key={c.value}
@@ -538,6 +499,9 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
                         }}
                       />
                     ))}
+                  </div>
+                  <div className="text-[9px] font-bold opacity-85 leading-tight" style={{ color: col.textHex }}>
+                    {team.players.length}p · Total {team.totalSkill} · Avg {team.averageSkill}
                   </div>
                   {isSwapDest && (
                     <button
@@ -594,6 +558,40 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Team History</h3>
+            </div>
+            <button
+              type="button"
+              className="text-[10px] font-bold text-muted-foreground underline"
+              onClick={() => setHistory([])}
+              data-testid="button-clear-history"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {history.slice(0, 6).map(entry => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => { setTeams(entry.teams); setFieldSize(entry.fieldSize); setNumTeams(entry.numTeams); setSwap(null); }}
+                className="min-w-[142px] rounded-lg border border-border bg-muted/30 px-3 py-2 text-left active:scale-[0.98] transition-transform"
+                data-testid={`button-history-${entry.id}`}
+              >
+                <p className="text-[11px] font-black text-foreground truncate">{shortDateTime(entry.createdAt)}</p>
+                <p className="text-[10px] font-bold text-muted-foreground capitalize">{entry.fieldSize} · {entry.numTeams} teams</p>
+                <p className="text-[10px] text-muted-foreground">{entry.totalPlayers} players</p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
