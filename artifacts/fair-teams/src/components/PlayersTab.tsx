@@ -134,7 +134,17 @@ function PlayerRadar({ player }: { player: RoomPlayer }) {
   );
 }
 
-function ProfileDialog({ player, onUpdate }: { player: RoomPlayer; onUpdate: (data: Partial<RoomPlayer>) => void }) {
+function ProfileDialog({
+  player,
+  onUpdate,
+  autoOpen = false,
+  onAutoOpenHandled,
+}: {
+  player: RoomPlayer;
+  onUpdate: (data: Partial<RoomPlayer>) => void;
+  autoOpen?: boolean;
+  onAutoOpenHandled?: () => void;
+}) {
   const [draft, setDraft] = useState<RoomPlayer>(() => normalizePlayer(player));
   const [open, setOpen] = useState(false);
   const photoCameraInput = useRef<HTMLInputElement | null>(null);
@@ -144,6 +154,13 @@ function ProfileDialog({ player, onUpdate }: { player: RoomPlayer; onUpdate: (da
   const updateDraft = (data: Partial<RoomPlayer>) => {
     setDraft(prev => normalizePlayer({ ...prev, ...data }));
   };
+
+  useEffect(() => {
+    if (!autoOpen) return;
+    setDraft(normalizePlayer(player));
+    setOpen(true);
+    onAutoOpenHandled?.();
+  }, [autoOpen, player, onAutoOpenHandled]);
 
   const save = () => {
     onUpdate({ ...draft, skill: overall });
@@ -300,6 +317,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
   const [isGoalkeeper, setIsGoalkeeper] = useState(false);
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [addPhoto, setAddPhoto] = useState<string | undefined>(undefined);
+  const [autoEditPlayerId, setAutoEditPlayerId] = useState<string | null>(null);
   const addPhotoCameraInput = useRef<HTMLInputElement | null>(null);
   const addPhotoGalleryInput = useRef<HTMLInputElement | null>(null);
   const [search, setSearch] = useState("");
@@ -315,30 +333,32 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const newPlayer = normalizePlayer({
+      id: createPlayerId(),
+      roomId: 1,
+      name: name.trim(),
+      aka: aka.trim() || undefined,
+      gender,
+      skill: 5,
+      attack: 5,
+      defense: 5,
+      speed: 5,
+      passing: 5,
+      stamina: 5,
+      physical: 5,
+      teamPlay: 2,
+      profilePhoto: addPhoto,
+      isGoalkeeper,
+      isOrganizer,
+      isNew,
+      attending: false,
+      createdAt: new Date().toISOString(),
+    });
     setPlayers([
       ...players,
-      normalizePlayer({
-        id: createPlayerId(),
-        roomId: 1,
-        name: name.trim(),
-        aka: aka.trim() || undefined,
-        gender,
-        skill: 5,
-        attack: 5,
-        defense: 5,
-        speed: 5,
-        passing: 5,
-        stamina: 5,
-        physical: 5,
-        teamPlay: 2,
-        profilePhoto: addPhoto,
-        isGoalkeeper,
-        isOrganizer,
-        isNew,
-        attending: false,
-        createdAt: new Date().toISOString(),
-      }),
+      newPlayer,
     ]);
+    setAutoEditPlayerId(newPlayer.id);
     setName("");
     setAka("");
     setIsNew(false);
@@ -381,24 +401,20 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-2">
               <button type="button" onClick={() => addPhotoGalleryInput.current?.click()} className="shrink-0">
-                <div className="w-14 h-14 rounded-full overflow-hidden bg-primary/10 text-primary font-black flex items-center justify-center border border-primary/20">
-                  {addPhoto ? <img src={addPhoto} alt="" className="w-full h-full object-cover" /> : <Camera className="w-5 h-5" />}
+                <div className="w-11 h-11 rounded-full overflow-hidden bg-primary/10 text-primary font-black flex items-center justify-center border border-primary/20">
+                  {addPhoto ? <img src={addPhoto} alt="" className="w-full h-full object-cover" /> : <Camera className="w-4 h-4" />}
                 </div>
               </button>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">Player Photo</p>
-                <p className="text-[11px] text-muted-foreground">Optional — take a quick photo or choose from gallery.</p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Button type="button" variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => addPhotoCameraInput.current?.click()}>
-                    <Camera className="w-3.5 h-3.5 mr-1" /> Take Photo
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => addPhotoGalleryInput.current?.click()}>
-                    <ImageIcon className="w-3.5 h-3.5 mr-1" /> Gallery
-                  </Button>
-                  {addPhoto && <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setAddPhoto(undefined)}><Trash2 className="w-3.5 h-3.5 mr-1" /> Remove</Button>}
-                </div>
+              <div className="flex flex-1 gap-2 min-w-0">
+                <Button type="button" variant="outline" size="sm" className="h-9 flex-1 text-xs font-bold px-2" onClick={() => addPhotoCameraInput.current?.click()}>
+                  <Camera className="w-3.5 h-3.5 mr-1" /> Camera
+                </Button>
+                <Button type="button" variant="outline" size="sm" className="h-9 flex-1 text-xs font-bold px-2" onClick={() => addPhotoGalleryInput.current?.click()}>
+                  <ImageIcon className="w-3.5 h-3.5 mr-1" /> Gallery
+                </Button>
+                {addPhoto && <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setAddPhoto(undefined)} title="Remove photo"><Trash2 className="w-3.5 h-3.5" /></Button>}
                 <input
                   ref={addPhotoCameraInput}
                   type="file"
@@ -429,20 +445,17 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 items-end">
-              <div className="space-y-2">
-                <Label htmlFor="gender" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Gender</Label>
-                <Select value={gender} onValueChange={v => setGender(v as Gender)}>
-                  <SelectTrigger className="h-12 font-medium" id="gender" data-testid="select-gender">
-                    <SelectValue placeholder="Gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={gender} onValueChange={v => setGender(v as Gender)}>
+                <SelectTrigger className="h-12 rounded-xl border-border bg-muted/30 font-bold" id="gender" data-testid="select-gender">
+                  <SelectValue placeholder="Gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
               <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 h-12 cursor-pointer">
                 <Checkbox
                   checked={isNew}
@@ -453,10 +466,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                 <span className="text-sm font-bold flex-1">New</span>
                 <NewBadge />
               </label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3 cursor-pointer">
+              <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 h-12 cursor-pointer">
                 <Checkbox
                   checked={isGoalkeeper}
                   onCheckedChange={checked => setIsGoalkeeper(checked === true)}
@@ -466,7 +476,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                 <span className="text-sm font-bold flex-1">GK</span>
                 <GKBadge />
               </label>
-              <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3 cursor-pointer">
+              <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 h-12 cursor-pointer">
                 <Checkbox
                   checked={isOrganizer}
                   onCheckedChange={checked => setIsOrganizer(checked === true)}
@@ -481,7 +491,6 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
             <Button type="submit" className="w-full h-12 mt-2 font-bold uppercase tracking-wide" data-testid="button-add-player">
               <Plus className="w-4 h-4 mr-2" /> Add Player
             </Button>
-            <p className="text-[11px] text-muted-foreground text-center">New players start as balanced 5 OVR. Tap Profile to add photo, detailed stats, and team play.</p>
           </form>
         </CardContent>
       </Card>
@@ -546,7 +555,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                     <span>ATK {player.attack}</span><span>DEF {player.defense}</span><span>SPD {player.speed}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <ProfileDialog player={player} onUpdate={(data) => updatePlayer(player.id, data)} />
+                    <ProfileDialog player={player} onUpdate={(data) => updatePlayer(player.id, data)} autoOpen={autoEditPlayerId === player.id} onAutoOpenHandled={() => setAutoEditPlayerId(null)} />
                     <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive w-8 h-8 rounded-full" data-testid={`button-remove-${player.id}`}>
