@@ -5,7 +5,7 @@ import { generateTeams, recomputeStats } from "@/lib/teamGenerator";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Shuffle, ArrowLeftRight, Download, HelpCircle, Clock, Pencil, Users } from "lucide-react";
+import { Shuffle, ArrowLeftRight, Download, HelpCircle, Clock, Pencil, Zap } from "lucide-react";
 import fairTeamsLogo from "@/assets/fairteams-logo.png";
 
 const COLOR_OPTIONS: { value: TeamColor; label: string; hex: string; textHex: string }[] = [
@@ -369,7 +369,7 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
         <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-          <Users className="w-6 h-6 text-muted-foreground opacity-40" />
+          <Zap className="w-6 h-6 text-muted-foreground opacity-40" />
         </div>
         <p className="text-sm text-muted-foreground font-medium">
           Select at least 2 players in the Today tab to generate teams.
@@ -502,7 +502,7 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
               >
                 {/* Header */}
                 <div className="px-2.5 pt-2 pb-1.5" style={{ backgroundColor: col.hex }}>
-                  <div className="flex items-start justify-between gap-1 mb-1">
+                  <div className="flex items-center justify-between gap-1 mb-1">
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="text-xs font-black uppercase tracking-wide leading-tight truncate" style={{ color: col.textHex }}>{team.name}</span>
                       <button
@@ -516,12 +516,9 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
                         <Pencil className="w-3 h-3" />
                       </button>
                     </div>
-                    <span className="text-[9px] font-bold opacity-80 text-right leading-tight shrink-0" style={{ color: col.textHex }}>
-                      {team.players.length}p · Total {team.totalSkill} · Avg {team.averageSkill}
-                    </span>
                   </div>
                   {/* Color swatches */}
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 mb-1">
                     {COLOR_OPTIONS.map(c => (
                       <button
                         key={c.value}
@@ -536,6 +533,9 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
                         }}
                       />
                     ))}
+                  </div>
+                  <div className="text-[9px] font-bold opacity-85 leading-tight" style={{ color: col.textHex }}>
+                    {team.players.length}p · Total {team.totalSkill} · Avg {team.averageSkill}
                   </div>
                   {isSwapDest && (
                     <button

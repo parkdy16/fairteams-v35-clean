@@ -18,6 +18,33 @@ export function getWeightedSkill(player: Player, fieldSize: FieldSize = "medium"
   ).toFixed(1));
 }
 
+function targetSizes(totalPlayers: number, numTeams: number) {
+  const base = Math.floor(totalPlayers / numTeams);
+  const extra = totalPlayers % numTeams;
+  return Array.from({ length: numTeams }, (_, index) => base + (index < extra ? 1 : 0));
+}
+
+function teamSkill(team: Team, fieldSize: FieldSize) {
+  return team.players.reduce((sum, p) => sum + getWeightedSkill(p, fieldSize), 0);
+}
+
+function balanceSpread(teams: Team[], fieldSize: FieldSize) {
+  teams.forEach(t => {
+    t.totalSkill = Number(teamSkill(t, fieldSize).toFixed(1));
+    t.averageSkill = t.players.length > 0 ? Number((t.totalSkill / t.players.length).toFixed(1)) : 0;
+  });
+}
+
+function roleCount(team: Team, role: "gk" | "female") {
+  if (role === "gk") return team.players.filter(p => p.isGoalkeeper).length;
+  return team.players.filter(p => p.gender === "female").length;
+}
+
+function maxMinTotalDiff(teams: Team[], fieldSize: FieldSize) {
+  const totals = teams.map(t => teamSkill(t, fieldSize));
+  return Math.max(...totals) - Math.min(...totals);
+}
+
 export function generateTeams(
   players: Player[],
   numTeams: number,
@@ -26,7 +53,10 @@ export function generateTeams(
 ): Team[] {
   if (numTeams < 2 || players.length === 0) return [];
 
-  const teams: Team[] = Array.from({ length: numTeams }, (_, i) => ({
+  const safeNumTeams = Math.min(numTeams, Math.max(2, players.length));
+  const sizes = targetSizes(players.length, safeNumTeams);
+
+  const teams: Team[] = Array.from({ length: safeNumTeams }, (_, i) => ({
     id: String(i + 1),
     name: `Team ${i + 1}`,
     players: [],
@@ -35,47 +65,112 @@ export function generateTeams(
     color: DEFAULT_COLORS[i % DEFAULT_COLORS.length],
   }));
 
-  // Always assign to the team with the lowest current total skill
-  const assignToLowest = (player: Player) => {
-    const t = teams.reduce((a, b) => (a.totalSkill <= b.totalSkill ? a : b));
-    t.players.push(player);
-    t.totalSkill = Number((t.totalSkill + getWeightedSkill(player, fieldSize)).toFixed(1));
+  const noise = new Map(
+    players.map(p => [p.id, shuffleEquals ? (Math.random() - 0.5) * 0.99 : 0])
+  );
+
+  const weighted = (p: Player) => getWeightedSkill(p, fieldSize);
+  const sortStrongFirst = (a: Player, b: Player) => (weighted(b) + (noise.get(b.id) ?? 0)) - (weighted(a) + (noise.get(a.id) ?? 0));
+
+  const addPlayer = (team: Team, player: Player) => {
+    team.players.push(player);
+    team.totalSkill = Number((team.totalSkill + weighted(player)).toFixed(1));
+    team.averageSkill = team.players.length > 0 ? Number((team.totalSkill / team.players.length).toFixed(1)) : 0;
   };
 
-  // Pre-compute stable noise per player so sorting is consistent within one call
-  const noise = new Map(
-    players.map(p => [
-      p.id,
-      shuffleEquals ? (Math.random() - 0.5) * 0.99 : 0,
-    ])
-  );
-  const sk = (p: Player) => getWeightedSkill(p, fieldSize) + (noise.get(p.id) ?? 0);
-  const bySkillDesc = (a: Player, b: Player) => sk(b) - sk(a);
+  const hasRoom = (teamIndex: number) => teams[teamIndex]!.players.length < sizes[teamIndex]!;
 
-  // Split into buckets
-  const females = players.filter(p => p.gender === "female").sort(bySkillDesc);
-  const runners = players.filter(p => p.gender !== "female" && p.speed >= 7).sort(bySkillDesc);
-  const rest    = players.filter(p => p.gender !== "female" && p.speed < 7).sort(bySkillDesc);
+  const chooseTeamForRole = (role: "gk" | "female") => {
+    return teams
+      .map((team, index) => ({ team, index }))
+      .filter(({ index }) => hasRoom(index))
+      .sort((a, b) =>
+        roleCount(a.team, role) - roleCount(b.team, role) ||
+        a.team.players.length - b.team.players.length ||
+        a.team.totalSkill - b.team.totalSkill
+      )[0];
+  };
 
-  // Pass 1: Give each team at most one female (greedy — avoids stacking top females on one team)
-  const femalesForPass1 = females.splice(0, Math.min(numTeams, females.length));
-  femalesForPass1.forEach(assignToLowest);
+  const chooseTeamForPlayer = (player: Player) => {
+    const eligible = teams
+      .map((team, index) => ({ team, index }))
+      .filter(({ index }) => hasRoom(index));
 
-  // Pass 2: Give each team at most one runner (greedy)
-  const runnersForPass1 = runners.splice(0, Math.min(numTeams, runners.length));
-  runnersForPass1.forEach(assignToLowest);
+    const candidates = eligible.length > 0 ? eligible : teams.map((team, index) => ({ team, index }));
 
-  // Pass 3: All remaining players distributed greedily by skill descending
-  [...females, ...runners, ...rest].sort(bySkillDesc).forEach(assignToLowest);
+    return candidates.sort((a, b) => {
+      const aProjected = a.team.totalSkill + weighted(player);
+      const bProjected = b.team.totalSkill + weighted(player);
+      return aProjected - bProjected || a.team.players.length - b.team.players.length;
+    })[0];
+  };
 
-  // Compute averages
-  teams.forEach(t => {
-    t.averageSkill =
-      t.players.length > 0
-        ? Number((t.totalSkill / t.players.length).toFixed(1))
-        : 0;
-  });
+  const assigned = new Set<string>();
 
+  const assignBucket = (bucket: Player[], role: "gk" | "female") => {
+    bucket.sort(sortStrongFirst).forEach(player => {
+      if (assigned.has(player.id)) return;
+      const selected = chooseTeamForRole(role);
+      if (!selected) return;
+      addPlayer(selected.team, player);
+      assigned.add(player.id);
+    });
+  };
+
+  // Important role spread first: keep goalkeepers and female players apart where possible.
+  assignBucket(players.filter(p => p.isGoalkeeper), "gk");
+  assignBucket(players.filter(p => p.gender === "female"), "female");
+
+  // Then distribute everyone else by weighted strength while respecting target team sizes.
+  players
+    .filter(p => !assigned.has(p.id))
+    .sort(sortStrongFirst)
+    .forEach(player => {
+      const selected = chooseTeamForPlayer(player);
+      if (!selected) return;
+      addPlayer(selected.team, player);
+      assigned.add(player.id);
+    });
+
+  // Simple swap optimizer: keep team sizes fixed, improve total-strength spread.
+  for (let pass = 0; pass < 3; pass += 1) {
+    let improved = false;
+
+    for (let i = 0; i < teams.length; i += 1) {
+      for (let j = i + 1; j < teams.length; j += 1) {
+        const a = teams[i]!;
+        const b = teams[j]!;
+        const before = maxMinTotalDiff(teams, fieldSize);
+
+        for (let ai = 0; ai < a.players.length; ai += 1) {
+          for (let bi = 0; bi < b.players.length; bi += 1) {
+            const playerA = a.players[ai]!;
+            const playerB = b.players[bi]!;
+
+            // Avoid undoing the most important role balancing unless both players share that role type.
+            if (Boolean(playerA.isGoalkeeper) !== Boolean(playerB.isGoalkeeper)) continue;
+            if ((playerA.gender === "female") !== (playerB.gender === "female")) continue;
+
+            a.players[ai] = playerB;
+            b.players[bi] = playerA;
+            const after = maxMinTotalDiff(teams, fieldSize);
+
+            if (after + 0.05 < before) {
+              improved = true;
+              balanceSpread(teams, fieldSize);
+            } else {
+              a.players[ai] = playerA;
+              b.players[bi] = playerB;
+            }
+          }
+        }
+      }
+    }
+
+    if (!improved) break;
+  }
+
+  balanceSpread(teams, fieldSize);
   return teams;
 }
 
