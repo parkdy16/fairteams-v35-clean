@@ -74,6 +74,15 @@ function PlayerAvatar({ player, size = "md" }: { player: RoomPlayer; size?: "sm"
 }
 
 
+
+function displayName(player: Pick<RoomPlayer, "name" | "aka">) {
+  const aka = player.aka?.trim();
+  return aka ? `${player.name} (${aka})` : player.name;
+}
+
+function NewBadge() {
+  return <span className="inline-flex items-center rounded-full bg-sky-100 px-1.5 py-0.5 text-[9px] font-black text-sky-800 border border-sky-200">NEW</span>;
+}
 function GKBadge() {
   return <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black text-emerald-800 border border-emerald-200">GK</span>;
 }
@@ -164,6 +173,8 @@ function ProfileDialog({ player, onUpdate }: { player: RoomPlayer; onUpdate: (da
             <div className="flex-1 space-y-2">
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Name</Label>
               <Input value={draft.name} onChange={e => updateDraft({ name: e.target.value })} />
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">AKA / Nickname</Label>
+              <Input value={draft.aka || ""} placeholder="Optional" onChange={e => updateDraft({ aka: e.target.value })} />
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => photoCameraInput.current?.click()}>
                   <Camera className="w-3.5 h-3.5 mr-1" /> Take Photo
@@ -215,10 +226,20 @@ function ProfileDialog({ player, onUpdate }: { player: RoomPlayer; onUpdate: (da
                 </SelectContent>
               </Select>
             </div>
-            <div className="rounded-xl bg-primary text-primary-foreground p-3 flex flex-col justify-center">
-              <span className="text-[10px] uppercase font-bold opacity-70">Overall</span>
-              <span className="text-3xl font-black leading-none">{overall}</span>
-            </div>
+            <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3 cursor-pointer self-end min-h-12">
+              <Checkbox
+                checked={!!draft.isNew}
+                onCheckedChange={checked => updateDraft({ isNew: checked === true })}
+                className="w-4 h-4 rounded border-2"
+              />
+              <span className="text-sm font-bold flex-1">New</span>
+              <NewBadge />
+            </label>
+          </div>
+
+          <div className="rounded-xl bg-primary text-primary-foreground p-3 flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold opacity-70">Overall</span>
+            <span className="text-3xl font-black leading-none">{overall}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -273,7 +294,9 @@ function OverallBadge({ player }: { player: RoomPlayer }) {
 
 export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; setPlayers: (players: RoomPlayer[]) => void }) {
   const [name, setName] = useState("");
+  const [aka, setAka] = useState("");
   const [gender, setGender] = useState<Gender>("male");
+  const [isNew, setIsNew] = useState(false);
   const [isGoalkeeper, setIsGoalkeeper] = useState(false);
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [addPhoto, setAddPhoto] = useState<string | undefined>(undefined);
@@ -298,6 +321,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
         id: createPlayerId(),
         roomId: 1,
         name: name.trim(),
+        aka: aka.trim() || undefined,
         gender,
         skill: 5,
         attack: 5,
@@ -310,18 +334,21 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
         profilePhoto: addPhoto,
         isGoalkeeper,
         isOrganizer,
+        isNew,
         attending: false,
         createdAt: new Date().toISOString(),
       }),
     ]);
     setName("");
+    setAka("");
+    setIsNew(false);
     setIsGoalkeeper(false);
     setIsOrganizer(false);
     setAddPhoto(undefined);
   };
 
   const filtered = search.trim()
-    ? players.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    ? players.filter(p => displayName(p).toLowerCase().includes(search.toLowerCase()))
     : players;
 
   return (
@@ -329,16 +356,29 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
       <Card className="border-border shadow-sm">
         <CardContent className="pt-6">
           <form onSubmit={handleAdd} className="flex flex-col gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Player Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g. Mike"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="h-12 font-medium"
-                data-testid="input-player-name"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Player Name</Label>
+                <Input
+                  id="name"
+                  placeholder="e.g. Paul"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="h-12 font-medium"
+                  data-testid="input-player-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="aka" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">AKA</Label>
+                <Input
+                  id="aka"
+                  placeholder="Optional"
+                  value={aka}
+                  onChange={e => setAka(e.target.value)}
+                  className="h-12 font-medium"
+                  data-testid="input-player-aka"
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3">
@@ -389,18 +429,30 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="gender" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Gender</Label>
-              <Select value={gender} onValueChange={v => setGender(v as Gender)}>
-                <SelectTrigger className="h-12 font-medium" id="gender" data-testid="select-gender">
-                  <SelectValue placeholder="Gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-2 items-end">
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Gender</Label>
+                <Select value={gender} onValueChange={v => setGender(v as Gender)}>
+                  <SelectTrigger className="h-12 font-medium" id="gender" data-testid="select-gender">
+                    <SelectValue placeholder="Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 h-12 cursor-pointer">
+                <Checkbox
+                  checked={isNew}
+                  onCheckedChange={checked => setIsNew(checked === true)}
+                  className="w-4 h-4 rounded border-2"
+                  data-testid="checkbox-new-player"
+                />
+                <span className="text-sm font-bold flex-1">New</span>
+                <NewBadge />
+              </label>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -479,8 +531,9 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                 <div className="flex items-center gap-3">
                   <PlayerAvatar player={player} size="xl" />
                   <div className="min-w-0 flex-1">
-                    <div className="font-black leading-tight text-base break-words">{player.name}</div>
+                    <div className="font-black leading-tight text-base break-words">{displayName(player)}</div>
                     <div className="mt-1 flex flex-wrap gap-1 min-h-5">
+                      {player.isNew && <NewBadge />}
                       {player.isGoalkeeper && <GKBadge />}
                       {player.isOrganizer && <ORGBadge />}
                     </div>
@@ -503,7 +556,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                     <AlertDialogContent className="max-w-xs rounded-xl">
                       <AlertDialogHeader>
                         <AlertDialogTitle>Remove Player?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete {player.name} from the roster.</AlertDialogDescription>
+                        <AlertDialogDescription>This will permanently delete {displayName(player)} from the roster.</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>

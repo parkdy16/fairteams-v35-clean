@@ -29,6 +29,15 @@ function ORGBadge() {
   return <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-black text-orange-800 border border-orange-200">ORG</span>;
 }
 
+function NewBadge() {
+  return <span className="inline-flex items-center rounded-full bg-sky-100 px-1.5 py-0.5 text-[9px] font-black text-sky-800 border border-sky-200">NEW</span>;
+}
+
+function displayName(player: Pick<Player, "name" | "aka">) {
+  const aka = player.aka?.trim();
+  return aka ? `${player.name} (${aka})` : player.name;
+}
+
 function GenderBadge({ gender }: { gender?: string }) {
   const normalized = (gender ?? "other").toLowerCase();
   if (normalized === "female") {
@@ -83,9 +92,9 @@ interface SwapSelection { playerId: string; fromTeamId: string; }
 
 function toLocalPlayer(p: RoomPlayer): Player {
   return {
-    id: p.id, name: p.name, gender: p.gender as Player["gender"], skill: p.skill,
+    id: p.id, name: p.name, aka: p.aka, gender: p.gender as Player["gender"], skill: p.skill,
     attack: p.attack, defense: p.defense, speed: p.speed, passing: p.passing, stamina: p.stamina, physical: p.physical,
-    teamPlay: p.teamPlay, profilePhoto: p.profilePhoto, isGoalkeeper: p.isGoalkeeper, isOrganizer: p.isOrganizer,
+    teamPlay: p.teamPlay, profilePhoto: p.profilePhoto, isGoalkeeper: p.isGoalkeeper, isOrganizer: p.isOrganizer, isNew: p.isNew,
   };
 }
 
@@ -235,7 +244,7 @@ async function exportTeamsAsJpg(teams: Team[], fieldSize: FieldSize) {
       team.players.forEach(player => {
         ctx.fillStyle = "#102A43";
         ctx.font = `800 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        ctx.fillText(player.name, playerX, playerY);
+        ctx.fillText(displayName(player), playerX, playerY);
 
         let badgeX = badgeRight;
         const badgeY = playerY - 13;
@@ -437,7 +446,7 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
         <div className="bg-primary/10 border border-primary/30 rounded-xl px-3 py-2 flex items-center gap-2">
           <ArrowLeftRight className="w-3.5 h-3.5 text-primary shrink-0" />
           <p className="text-xs font-semibold text-primary flex-1">
-            Moving <span className="font-black">{teams.flatMap(t => t.players).find(p => p.id === swap.playerId)?.name}</span> — tap a team to move there
+            Moving <span className="font-black">{displayName(teams.flatMap(t => t.players).find(p => p.id === swap.playerId) || { name: "player" })}</span> — tap a team to move there
           </p>
           <button className="text-[10px] text-muted-foreground underline shrink-0" onClick={() => setSwap(null)} data-testid="button-cancel-swap">Cancel</button>
         </div>
@@ -560,9 +569,10 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
                         >
                           <ArrowLeftRight className="w-2.5 h-2.5 shrink-0" style={{ color: isSelected ? col.hex : "transparent" }} />
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-xs truncate">{player.name}</div>
-                            {(player.isGoalkeeper || player.isOrganizer) && (
+                            <div className="font-bold text-xs truncate">{displayName(player)}</div>
+                            {(player.isNew || player.isGoalkeeper || player.isOrganizer) && (
                               <div className="mt-0.5 flex flex-wrap gap-1">
+                                {player.isNew && <NewBadge />}
                                 {player.isGoalkeeper && <GKBadge />}
                                 {player.isOrganizer && <ORGBadge />}
                               </div>

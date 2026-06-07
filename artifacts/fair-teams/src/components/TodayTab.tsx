@@ -5,6 +5,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 
+
+function displayName(player: Pick<RoomPlayer, "name" | "aka">) {
+  const aka = player.aka?.trim();
+  return aka ? `${player.name} (${aka})` : player.name;
+}
+
+function NewBadge() {
+  return <span className="inline-flex items-center rounded-full bg-sky-100 px-1.5 py-0.5 text-[9px] font-black text-sky-800 border border-sky-200">NEW</span>;
+}
 function GKBadge() {
   return <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black text-emerald-800 border border-emerald-200">GK</span>;
 }
@@ -18,7 +27,7 @@ export function TodayTab({ players, setPlayers }: { players: RoomPlayer[]; setPl
 
   const sorted = [...players].sort((a, b) => a.name.localeCompare(b.name));
   const filtered = search.trim()
-    ? sorted.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    ? sorted.filter(p => displayName(p).toLowerCase().includes(search.toLowerCase()))
     : sorted;
 
   const selectedCount = players.filter(p => p.attending).length;
@@ -90,10 +99,10 @@ export function TodayTab({ players, setPlayers }: { players: RoomPlayer[]; setPl
                 data-testid={`attendance-check-${player.id}`}
               />
               <div className="flex flex-col min-w-0 flex-1">
-                <div className={`font-bold text-xs truncate leading-tight ${player.attending ? "text-primary" : "text-foreground"}`}>{player.name}</div>
-                {(player.isGoalkeeper || player.isOrganizer) && (
+                <div className={`font-bold text-xs truncate leading-tight ${player.attending ? "text-primary" : "text-foreground"}`}>{displayName(player)}</div>
+                {(player.isNew || player.isGoalkeeper || player.isOrganizer) && (
                   <div className="mt-0.5 flex flex-wrap gap-1">
-                    {player.isGoalkeeper && <GKBadge />}
+                    {player.isNew && <NewBadge />}{player.isGoalkeeper && <GKBadge />}
                     {player.isOrganizer && <ORGBadge />}
                   </div>
                 )}

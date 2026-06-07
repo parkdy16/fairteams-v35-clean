@@ -3,6 +3,7 @@ export type Gender = "male" | "female" | "other";
 export interface Player {
   id: string;
   name: string;
+  aka?: string;
   gender: Gender;
   skill: number;    // computed overall 0-10
   attack: number;   // 1-10
@@ -15,6 +16,7 @@ export interface Player {
   profilePhoto?: string;
   isGoalkeeper?: boolean;
   isOrganizer?: boolean;
+  isNew?: boolean;
 }
 
 export type AttendanceMap = Record<string, boolean>;

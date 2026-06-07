@@ -4,6 +4,7 @@ export interface RoomPlayer {
   id: string;
   roomId: number;
   name: string;
+  aka?: string;
   gender: Gender;
   skill: number;       // computed overall 0-10
   attack: number;      // 1-10
@@ -16,6 +17,7 @@ export interface RoomPlayer {
   profilePhoto?: string;
   isGoalkeeper?: boolean;
   isOrganizer?: boolean;
+  isNew?: boolean;
   attending: boolean;
   createdAt: string;
 }
@@ -57,6 +59,7 @@ export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string },
     id: player.id || createLocalPlayerId(),
     roomId: 1,
     name: (player.name || `Player ${index + 1}`).trim(),
+    aka: typeof player.aka === "string" && player.aka.trim() ? player.aka.trim() : undefined,
     gender: player.gender === "female" || player.gender === "other" ? player.gender : "male",
     skill: baseSkill,
     attack: clamp(player.attack, 1, 10, baseSkill || 5),
@@ -69,6 +72,7 @@ export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string },
     profilePhoto: typeof player.profilePhoto === "string" ? player.profilePhoto : undefined,
     isGoalkeeper: Boolean(player.isGoalkeeper ?? false),
     isOrganizer: Boolean(player.isOrganizer ?? false),
+    isNew: Boolean(player.isNew ?? false),
     attending: Boolean(player.attending ?? false),
     createdAt: player.createdAt || new Date().toISOString(),
   };
@@ -103,8 +107,8 @@ export function escapeCsv(value: unknown) {
 }
 
 export function playersToCsv(players: RoomPlayer[]) {
-  const headers = ["name", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isOrganizer", "attending"];
-  const rows = players.map(p => [p.name, p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.attending ? "yes" : "no"]);
+  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isOrganizer", "isNew", "attending"];
+  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.attending ? "yes" : "no"]);
   return [headers, ...rows].map(row => row.map(escapeCsv).join(",")).join("\n");
 }
 
@@ -151,6 +155,7 @@ export function csvToPlayers(csvText: string): RoomPlayer[] {
     const skill = Number(get("overall") || get("skill") || 5);
     return normalizePlayer({
       name: get("name") || cells[0],
+      aka: get("aka") || get("nickname"),
       gender: get("gender") as Gender,
       skill,
       attack: Number(get("attack") || skill),
@@ -162,6 +167,7 @@ export function csvToPlayers(csvText: string): RoomPlayer[] {
       teamPlay: Number(get("teamplay") || get("teamPlay") || get("weakfoot") || get("weakFoot") || 2),
       isGoalkeeper: parseBoolean(get("isgoalkeeper") || get("goalkeeper") || get("gk")),
       isOrganizer: parseBoolean(get("isorganizer") || get("organizer") || get("org")),
+      isNew: parseBoolean(get("isnew") || get("new")),
       attending: parseBoolean(get("attending")),
     }, index);
   }).filter(p => p.name);
