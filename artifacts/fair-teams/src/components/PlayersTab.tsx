@@ -215,13 +215,12 @@ function AbilityBadge({
   );
 }
 
-function PlayerTags({ player, includeAbilities = true }: { player: RoomPlayer; includeAbilities?: boolean }) {
-  const abilities = SPECIAL_ABILITIES.filter(a => Boolean(player[a.key]));
+function PlayerTags({ player, includeVibe = false }: { player: RoomPlayer; includeVibe?: boolean }) {
   return (
-    <div className="mt-1 flex flex-wrap gap-1 min-h-5">
+    <div className="mt-1 flex flex-wrap gap-1 min-h-5 items-center">
+      {includeVibe && player.funBadge ? <FunBadgePill value={player.funBadge} /> : null}
       {player.isNew && <NewBadge />}
       {player.isOrganizer && <ORGBadge />}
-      {includeAbilities && abilities.map(a => <AbilityBadge key={a.key} ability={a} />)}
     </div>
   );
 }
@@ -488,11 +487,6 @@ function PlayerCardBack({ player }: { player: RoomPlayer }) {
             />
           )) : <span className="text-[10px] font-semibold text-muted-foreground">No special abilities set</span>}
         </div>
-        {player.funBadge ? (
-          <div className="text-center text-[10px] font-semibold text-muted-foreground">
-            <FunBadgePill value={player.funBadge} />
-          </div>
-        ) : null}
         {selectedAbility ? (
           <div className="mx-auto max-w-[260px] text-center">
             <div className="text-[11px] font-semibold text-foreground leading-tight">{selectedAbility.label}</div>
@@ -681,7 +675,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                     <PlayerAvatar player={player} size="xl" />
                     <div className="min-w-0 flex-1">
                       <div className="font-black leading-tight text-base break-words">{displayName(player)}</div>
-                      <PlayerTags player={player} includeAbilities={isFlipped} />
+                      <PlayerTags player={player} includeVibe={isFlipped} />
                     </div>
                     <OverallBadge player={player} />
                   </div>
