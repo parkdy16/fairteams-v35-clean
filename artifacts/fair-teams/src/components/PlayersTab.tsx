@@ -68,11 +68,18 @@ const SPECIAL_ABILITIES: { key: AbilityKey; label: string; badge: string; descri
 
 const FUN_BADGES: { value: FunBadge; label: string; emoji: string; description: string }[] = [
   { value: "loudmouth", label: "Loudmouth", emoji: "📢", description: "Always talking." },
-  { value: "warrior", label: "Warrior", emoji: "⚔️", description: "Maximum effort, every ball." },
-  { value: "magician", label: "Magician", emoji: "🪄", description: "Unexpected flair and skills." },
+  { value: "warrior", label: "Warrior", emoji: "😤", description: "Maximum effort, every ball." },
+  { value: "samba", label: "Samba", emoji: "🇧🇷", description: "Flair, tricks, and Brazilian-style creativity." },
+  { value: "maradoner", label: "Maradoner", emoji: "🥙", description: "Believes every defender can be beaten." },
   { value: "reluctant-gk", label: "Reluctant GK", emoji: "🧤", description: "Needs convincing to play in goal." },
   { value: "first-10", label: "First 10 Minutes", emoji: "🚀", description: "Starts fast, fades later." },
   { value: "always-late", label: "Always Late", emoji: "⏰", description: "Arrives after kickoff." },
+  { value: "unbothered", label: "Unbothered", emoji: "😐", description: "Nothing seems to matter." },
+  { value: "wildcard", label: "Wildcard", emoji: "🎲", description: "Nobody knows which version will show up." },
+  { value: "third-half", label: "Third Half Specialist", emoji: "🍺", description: "World-class after the final whistle." },
+  { value: "club-ambassador", label: "Club Ambassador", emoji: "🤝", description: "Welcomes people and keeps the group friendly." },
+  { value: "cfo", label: "CFO", emoji: "💳", description: "Tracks fees, payments, and who still owes money." },
+  { value: "club-chef", label: "Club Chef", emoji: "🔪", description: "Handles food, snacks, and post-match fuel." },
 ];
 
 function getFunBadge(value?: FunBadge) {
@@ -202,7 +209,7 @@ function PlayerTags({ player, includeAbilities = true }: { player: RoomPlayer; i
     <div className="mt-1 flex flex-wrap gap-1 min-h-5">
       {player.isNew && <NewBadge />}
       {player.isOrganizer && <ORGBadge />}
-      {player.funBadge && <FunBadgePill value={player.funBadge} />}
+      {includeAbilities && player.funBadge && <FunBadgePill value={player.funBadge} />}
       {includeAbilities && abilities.map(a => <AbilityBadge key={a.key} ability={a} />)}
     </div>
   );
@@ -423,21 +430,26 @@ function ProfileDialog({
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1"><Star className="w-3 h-3" /> Special abilities</Label>
               <span className="text-[10px] font-bold text-muted-foreground">Optional</span>
             </div>
-            <div className="grid grid-cols-1 gap-2">
-              {SPECIAL_ABILITIES.map(ability => (
-                <label key={ability.key} className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 cursor-pointer">
-                  <Checkbox
-                    checked={Boolean(draft[ability.key])}
-                    onCheckedChange={checked => updateDraft({ [ability.key]: checked === true } as Partial<RoomPlayer>)}
-                    className="w-4 h-4 rounded border-2"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-black leading-tight">{ability.label}</div>
-                    <div className="text-[10px] text-muted-foreground font-semibold truncate">{ability.description}</div>
-                  </div>
-                  <AbilityBadge ability={ability} />
-                </label>
-              ))}
+            <div className="grid grid-cols-2 gap-1.5">
+              {SPECIAL_ABILITIES.map(ability => {
+                const selected = Boolean(draft[ability.key]);
+                return (
+                  <label
+                    key={ability.key}
+                    className={`flex items-center gap-1.5 rounded-xl border px-2 py-1.5 cursor-pointer active:scale-[0.99] ${
+                      selected ? "border-amber-400 bg-amber-50 shadow-sm" : "border-border bg-background/70"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selected}
+                      onCheckedChange={checked => updateDraft({ [ability.key]: checked === true } as Partial<RoomPlayer>)}
+                      className="sr-only"
+                    />
+                    <AbilityBadge ability={ability} selected={selected} />
+                    <span className="text-xs font-black leading-tight truncate">{ability.label}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
