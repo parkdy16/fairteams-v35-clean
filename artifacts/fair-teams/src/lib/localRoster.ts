@@ -1,4 +1,4 @@
-import { Gender } from "@/lib/types";
+import { FieldSize, Gender } from "@/lib/types";
 
 export interface RoomPlayer {
   id: string;
@@ -14,19 +14,14 @@ export interface RoomPlayer {
   stamina: number;     // 1-10
   physical: number;    // 1-10
   teamPlay: number;    // 1-3 (low / average / high)
+  specialAbility?: string;
+  specialAbilities?: string[];
   profilePhoto?: string;
   isGoalkeeper?: boolean;
-  isPlaymaker?: boolean;
-  isFinisher?: boolean;
-  isDribbler?: boolean;
-  isSentinel?: boolean;
-  isEngine?: boolean;
-  isVersatile?: boolean;
   isOrganizer?: boolean;
   isNew?: boolean;
   attending: boolean;
   createdAt: string;
-  updatedAt?: string;
 }
 
 const STORAGE_KEY = "fair-teams-local-roster-v1-profiles";
@@ -46,18 +41,100 @@ function clamp(num: unknown, min: number, max: number, fallback: number) {
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
+const SPECIAL_ABILITY_BONUSES: Record<string, Partial<Record<"attack" | "defense" | "speed" | "passing" | "stamina" | "physical", number>>> = {
+  playmaker: { passing: 0.7, attack: 0.3 },
+  sentinel: { defense: 0.8, physical: 0.2 },
+  finisher: { attack: 0.8, passing: 0.2 },
+  engine: { stamina: 0.7, speed: 0.3 },
+  speedster: { speed: 0.8, attack: 0.2 },
+};
+
+function clampRating(num: unknown, fallback = 5) {
+  const n = Number(num);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(10, Math.max(1, n));
+}
+
+function specialAbilityNames(player: Partial<RoomPlayer>) {
+  const names = [
+    player.specialAbility,
+    ...(Array.isArray(player.specialAbilities) ? player.specialAbilities : []),
+  ];
+
+  return names
+    .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+    .map(name => name.trim().toLowerCase());
+}
+
+export function getImpactAttributes(player: Partial<RoomPlayer>) {
+  const baseSkill = clamp(player.skill, 0, 10, 5) || 5;
+  const attrs = {
+    attack: clampRating(player.attack, baseSkill),
+    defense: clampRating(player.defense, baseSkill),
+    speed: clampRating(player.speed, 5),
+    passing: clampRating(player.passing, baseSkill),
+    stamina: clampRating(player.stamina, 5),
+    physical: clampRating(player.physical, 5),
+  };
+
+  // Special abilities are small team-balancing nudges, not fake superstar bonuses.
+  // Goalkeeper is intentionally handled as a team-spreading role, not an OVA boost.
+  specialAbilityNames(player).forEach(name => {
+    if (name === "goalkeeper" || name === "gk") return;
+    const bonus = SPECIAL_ABILITY_BONUSES[name];
+    if (!bonus) return;
+    Object.entries(bonus).forEach(([key, value]) => {
+      const stat = key as keyof typeof attrs;
+      attrs[stat] = Math.min(10, attrs[stat] + (value ?? 0));
+    });
+  });
+
+  return attrs;
+}
+
 export function calculateOverall(player: Partial<RoomPlayer>) {
-  const attack = clamp(player.attack, 1, 10, clamp(player.skill, 0, 10, 5));
-  const defense = clamp(player.defense, 1, 10, clamp(player.skill, 0, 10, 5));
-  const speed = clamp(player.speed, 1, 10, 5);
-  const passing = clamp(player.passing, 1, 10, clamp(player.skill, 0, 10, 5));
-  const stamina = clamp(player.stamina, 1, 10, 5);
-  const physical = clamp(player.physical, 1, 10, 5);
+  const attrs = getImpactAttributes(player);
   const teamPlay = clamp(player.teamPlay, 1, 3, 2);
 
-  const baseOverall = (attack + defense + speed + passing + stamina + physical) / 6;
-  const teamPlayMultiplier = teamPlay === 1 ? 0.93 : teamPlay === 3 ? 1.07 : 1.0;
-  return Math.round(Math.min(10, baseOverall * teamPlayMultiplier) * 10) / 10;
+  // Casual football impact without positions: reward balance and penalize one-way players.
+  const weighted =
+    // Casual football OVA: technique, pace, and two-way usefulness matter more than strength.
+    attrs.passing * 0.22 +
+    attrs.attack * 0.21 +
+    attrs.defense * 0.20 +
+    attrs.speed * 0.20 +
+    attrs.stamina * 0.12 +
+    attrs.physical * 0.05;
+
+  const values = Object.values(attrs);
+  const weakest = Math.min(...values);
+  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const weaknessPenalty = Math.max(0, average - weakest - 1.5) * 0.22;
+  const teamPlayAdjustment = teamPlay === 1 ? -0.4 : teamPlay === 3 ? 0.35 : 0;
+
+  const overall = Math.min(10, Math.max(1, weighted - weaknessPenalty + teamPlayAdjustment));
+  return Math.round(overall * 10) / 10;
+}
+
+export function calculateBalanceScore(player: Partial<RoomPlayer>, fieldSize: FieldSize = "medium") {
+  const attrs = getImpactAttributes(player);
+  const weights = fieldSize === "small"
+    ? { attack: 0.22, passing: 0.26, defense: 0.20, speed: 0.20, stamina: 0.08, physical: 0.04 }
+    : fieldSize === "large"
+      ? { attack: 0.16, passing: 0.19, defense: 0.23, speed: 0.18, stamina: 0.20, physical: 0.04 }
+      : { attack: 0.20, passing: 0.22, defense: 0.22, speed: 0.20, stamina: 0.12, physical: 0.04 };
+
+  const score =
+    attrs.attack * weights.attack +
+    attrs.passing * weights.passing +
+    attrs.defense * weights.defense +
+    attrs.speed * weights.speed +
+    attrs.stamina * weights.stamina +
+    attrs.physical * weights.physical;
+
+  const teamPlay = clamp(player.teamPlay, 1, 3, 2);
+  const adjustment = teamPlay === 1 ? -0.25 : teamPlay === 3 ? 0.2 : 0;
+  return Math.round(Math.min(10, Math.max(1, score + adjustment)) * 10) / 10;
 }
 
 export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string }, index = 0): RoomPlayer {
@@ -76,19 +153,14 @@ export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string },
     stamina: clamp(player.stamina, 1, 10, 5),
     physical: clamp(player.physical, 1, 10, 5),
     teamPlay: clamp(player.teamPlay, 1, 3, 2),
+    specialAbility: typeof player.specialAbility === "string" && player.specialAbility.trim() ? player.specialAbility.trim() : undefined,
+    specialAbilities: Array.isArray(player.specialAbilities) ? player.specialAbilities.filter((value): value is string => typeof value === "string" && value.trim().length > 0).map(value => value.trim()) : undefined,
     profilePhoto: typeof player.profilePhoto === "string" ? player.profilePhoto : undefined,
     isGoalkeeper: Boolean(player.isGoalkeeper ?? false),
-    isPlaymaker: Boolean(player.isPlaymaker ?? false),
-    isFinisher: Boolean(player.isFinisher ?? false),
-    isDribbler: Boolean(player.isDribbler ?? false),
-    isSentinel: Boolean(player.isSentinel ?? false),
-    isEngine: Boolean(player.isEngine ?? false),
-    isVersatile: Boolean(player.isVersatile ?? false),
     isOrganizer: Boolean(player.isOrganizer ?? false),
     isNew: Boolean(player.isNew ?? false),
     attending: Boolean(player.attending ?? false),
     createdAt: player.createdAt || new Date().toISOString(),
-    updatedAt: player.updatedAt || player.createdAt || new Date().toISOString(),
   };
   normalized.skill = calculateOverall(normalized);
   return normalized;
@@ -121,8 +193,8 @@ export function escapeCsv(value: unknown) {
 }
 
 export function playersToCsv(players: RoomPlayer[]) {
-  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isPlaymaker", "isFinisher", "isDribbler", "isSentinel", "isEngine", "isVersatile", "isOrganizer", "isNew", "attending", "createdAt", "updatedAt"];
-  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isPlaymaker ? "yes" : "no", p.isFinisher ? "yes" : "no", p.isDribbler ? "yes" : "no", p.isSentinel ? "yes" : "no", p.isEngine ? "yes" : "no", p.isVersatile ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.attending ? "yes" : "no", p.createdAt, p.updatedAt || ""]);
+  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "specialAbility", "isGoalkeeper", "isOrganizer", "isNew", "attending"];
+  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.specialAbility || (p.specialAbilities || []).join("|"), p.isGoalkeeper ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.attending ? "yes" : "no"]);
   return [headers, ...rows].map(row => row.map(escapeCsv).join(",")).join("\n");
 }
 
@@ -179,18 +251,11 @@ export function csvToPlayers(csvText: string): RoomPlayer[] {
       stamina: Number(get("stamina") || 5),
       physical: Number(get("strength") || get("physical") || 5),
       teamPlay: Number(get("teamplay") || get("teamPlay") || get("weakfoot") || get("weakFoot") || 2),
+      specialAbility: get("specialability") || get("ability") || get("special"),
       isGoalkeeper: parseBoolean(get("isgoalkeeper") || get("goalkeeper") || get("gk")),
-      isPlaymaker: parseBoolean(get("isplaymaker") || get("playmaker")),
-      isFinisher: parseBoolean(get("isfinisher") || get("finisher")),
-      isDribbler: parseBoolean(get("isdribbler") || get("dribbler")),
-      isSentinel: parseBoolean(get("issentinel") || get("sentinel")),
-      isEngine: parseBoolean(get("isengine") || get("engine")),
-      isVersatile: parseBoolean(get("isversatile") || get("versatile")),
       isOrganizer: parseBoolean(get("isorganizer") || get("organizer") || get("org")),
       isNew: parseBoolean(get("isnew") || get("new")),
       attending: parseBoolean(get("attending")),
-      createdAt: get("createdat") || undefined,
-      updatedAt: get("updatedat") || undefined,
     }, index);
   }).filter(p => p.name);
 }

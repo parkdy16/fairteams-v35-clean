@@ -1,23 +1,10 @@
+import { calculateBalanceScore } from "./localRoster";
 import { FieldSize, Player, Team, TeamColor } from "./types";
 
 const DEFAULT_COLORS: TeamColor[] = ["red", "blue", "lime", "yellow", "orange", "black"];
 
 export function getWeightedSkill(player: Player, fieldSize: FieldSize = "medium") {
-  const equal = 1 / 6;
-  const weights = fieldSize === "small"
-    ? { attack: 0.22, passing: 0.26, defense: 0.22, speed: 0.10, stamina: 0.10, physical: 0.10 }
-    : { attack: equal, passing: equal, defense: equal, speed: equal, stamina: equal, physical: equal };
-
-  const base =
-    player.attack * weights.attack +
-    player.passing * weights.passing +
-    player.defense * weights.defense +
-    player.speed * weights.speed +
-    player.stamina * weights.stamina +
-    player.physical * weights.physical;
-
-  const teamPlayMultiplier = player.teamPlay === 1 ? 0.93 : player.teamPlay === 3 ? 1.07 : 1.0;
-  return Number(Math.min(10, base * teamPlayMultiplier).toFixed(1));
+  return calculateBalanceScore(player, fieldSize);
 }
 
 function targetSizes(totalPlayers: number, numTeams: number) {
@@ -37,14 +24,9 @@ function balanceSpread(teams: Team[], fieldSize: FieldSize) {
   });
 }
 
-type BalanceRole = "gk" | "female" | "playmaker" | "finisher" | "sentinel";
-
-function roleCount(team: Team, role: BalanceRole) {
+function roleCount(team: Team, role: "gk" | "female") {
   if (role === "gk") return team.players.filter(p => p.isGoalkeeper).length;
-  if (role === "female") return team.players.filter(p => p.gender === "female").length;
-  if (role === "playmaker") return team.players.filter(p => p.isPlaymaker).length;
-  if (role === "finisher") return team.players.filter(p => p.isFinisher).length;
-  return team.players.filter(p => p.isSentinel).length;
+  return team.players.filter(p => p.gender === "female").length;
 }
 
 function maxMinTotalDiff(teams: Team[], fieldSize: FieldSize) {
@@ -87,7 +69,7 @@ export function generateTeams(
 
   const hasRoom = (teamIndex: number) => teams[teamIndex]!.players.length < sizes[teamIndex]!;
 
-  const chooseTeamForRole = (role: BalanceRole) => {
+  const chooseTeamForRole = (role: "gk" | "female") => {
     return teams
       .map((team, index) => ({ team, index }))
       .filter(({ index }) => hasRoom(index))
@@ -114,7 +96,7 @@ export function generateTeams(
 
   const assigned = new Set<string>();
 
-  const assignBucket = (bucket: Player[], role: BalanceRole) => {
+  const assignBucket = (bucket: Player[], role: "gk" | "female") => {
     bucket.sort(sortStrongFirst).forEach(player => {
       if (assigned.has(player.id)) return;
       const selected = chooseTeamForRole(role);
@@ -124,12 +106,9 @@ export function generateTeams(
     });
   };
 
-  // Important role spread first: keep goalkeepers, female players and key special abilities apart where possible.
+  // Important role spread first: keep goalkeepers and female players apart where possible.
   assignBucket(players.filter(p => p.isGoalkeeper), "gk");
   assignBucket(players.filter(p => p.gender === "female"), "female");
-  assignBucket(players.filter(p => p.isPlaymaker), "playmaker");
-  assignBucket(players.filter(p => p.isFinisher), "finisher");
-  assignBucket(players.filter(p => p.isSentinel), "sentinel");
 
   // Then distribute everyone else by weighted strength while respecting target team sizes.
   players
