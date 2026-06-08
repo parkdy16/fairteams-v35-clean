@@ -159,7 +159,7 @@ function ORGBadge() {
 function FunBadgePill({ value }: { value?: FunBadge }) {
   const badge = getFunBadge(value);
   if (!badge) return null;
-  return <span title={badge.description} className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black text-emerald-800 border border-emerald-200">{badge.emoji} {badge.label}</span>;
+  return <span title={badge.description} className="inline-flex items-center px-0.5 py-0 text-[10px] font-semibold text-muted-foreground">{badge.emoji} {badge.label}</span>;
 }
 function AbilityBadge({
   ability,
