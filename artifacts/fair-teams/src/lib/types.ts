@@ -23,6 +23,7 @@ export interface Player {
   isSentinel?: boolean;
   isEngine?: boolean;
   isVersatile?: boolean;
+  isSpaceFinder?: boolean;
   isOrganizer?: boolean;
   isNew?: boolean;
   funBadge?: FunBadge;

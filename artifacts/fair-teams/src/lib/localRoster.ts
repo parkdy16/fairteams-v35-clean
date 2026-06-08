@@ -22,6 +22,7 @@ export interface RoomPlayer {
   isSentinel?: boolean;
   isEngine?: boolean;
   isVersatile?: boolean;
+  isSpaceFinder?: boolean;
   isOrganizer?: boolean;
   isNew?: boolean;
   funBadge?: FunBadge;
@@ -55,7 +56,8 @@ function specialAbilityBonus(player: Partial<RoomPlayer>) {
   if (player.isDribbler) bonus += 0.2;
   if (player.isEngine) bonus += 0.2;
   if (player.isVersatile) bonus += 0.2;
-  return Math.min(0.7, bonus);
+  if (player.isSpaceFinder) bonus += 0.3;
+  return Math.min(0.9, bonus);
 }
 
 export function calculateOverall(player: Partial<RoomPlayer>) {
@@ -108,6 +110,7 @@ export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string },
     isSentinel: Boolean(player.isSentinel ?? false),
     isEngine: Boolean(player.isEngine ?? false),
     isVersatile: Boolean(player.isVersatile ?? false),
+    isSpaceFinder: Boolean(player.isSpaceFinder ?? false),
     isOrganizer: Boolean(player.isOrganizer ?? false),
     isNew: Boolean(player.isNew ?? false),
     funBadge: isFunBadge(player.funBadge) ? player.funBadge : undefined,
@@ -146,8 +149,8 @@ export function escapeCsv(value: unknown) {
 }
 
 export function playersToCsv(players: RoomPlayer[]) {
-  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isPlaymaker", "isFinisher", "isDribbler", "isSentinel", "isEngine", "isVersatile", "isOrganizer", "isNew", "funBadge", "attending", "createdAt", "updatedAt"];
-  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isPlaymaker ? "yes" : "no", p.isFinisher ? "yes" : "no", p.isDribbler ? "yes" : "no", p.isSentinel ? "yes" : "no", p.isEngine ? "yes" : "no", p.isVersatile ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.funBadge || "", p.attending ? "yes" : "no", p.createdAt, p.updatedAt || ""]);
+  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isPlaymaker", "isFinisher", "isDribbler", "isSentinel", "isEngine", "isVersatile", "isSpaceFinder", "isOrganizer", "isNew", "funBadge", "attending", "createdAt", "updatedAt"];
+  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isPlaymaker ? "yes" : "no", p.isFinisher ? "yes" : "no", p.isDribbler ? "yes" : "no", p.isSentinel ? "yes" : "no", p.isEngine ? "yes" : "no", p.isVersatile ? "yes" : "no", p.isSpaceFinder ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.funBadge || "", p.attending ? "yes" : "no", p.createdAt, p.updatedAt || ""]);
   return [headers, ...rows].map(row => row.map(escapeCsv).join(",")).join("\n");
 }
 
@@ -211,6 +214,7 @@ export function csvToPlayers(csvText: string): RoomPlayer[] {
       isSentinel: parseBoolean(get("issentinel") || get("sentinel")),
       isEngine: parseBoolean(get("isengine") || get("engine")),
       isVersatile: parseBoolean(get("isversatile") || get("versatile")),
+      isSpaceFinder: parseBoolean(get("isspacefinder") || get("spacefinder") || get("space finder")),
       isOrganizer: parseBoolean(get("isorganizer") || get("organizer") || get("org")),
       isNew: parseBoolean(get("isnew") || get("new")),
       funBadge: isFunBadge(get("funbadge") || get("funBadge") || get("badge")) ? (get("funbadge") || get("funBadge") || get("badge")) as FunBadge : undefined,

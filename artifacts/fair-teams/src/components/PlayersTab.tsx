@@ -5,7 +5,6 @@ import { FunBadge, Gender } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -53,7 +52,7 @@ function VersatileBadgeIcon({ className }: { className?: string }) {
   );
 }
 
-type AbilityKey = "isGoalkeeper" | "isPlaymaker" | "isFinisher" | "isDribbler" | "isSentinel" | "isEngine" | "isVersatile";
+type AbilityKey = "isGoalkeeper" | "isPlaymaker" | "isFinisher" | "isDribbler" | "isSentinel" | "isEngine" | "isVersatile" | "isSpaceFinder";
 
 const SPECIAL_ABILITIES: { key: AbilityKey; label: string; badge: string; description: string; icon?: React.ComponentType<{ className?: string }> }[] = [
   { key: "isGoalkeeper", label: "Goalkeeper", badge: "GK", description: "Comfortable in goal; helps spread keeper options across teams." },
@@ -63,6 +62,7 @@ const SPECIAL_ABILITIES: { key: AbilityKey; label: string; badge: string; descri
   { key: "isSentinel", label: "Sentinel", badge: "SEN", description: "Defensive stopper; tackles, marks, and protects space.", icon: Shield },
   { key: "isEngine", label: "Engine", badge: "ENG", description: "High work rate; keeps running, pressing, and covering.", icon: EngineBadgeIcon },
   { key: "isVersatile", label: "Versatile", badge: "ALL", description: "All-rounder who can fill weak spots in a team.", icon: VersatileBadgeIcon },
+  { key: "isSpaceFinder", label: "Space Finder", badge: "SPC", description: "Finds smart spaces in attack and defense.", icon: Search },
 ];
 
 
@@ -155,6 +155,18 @@ function NewBadge() {
 }
 function ORGBadge() {
   return <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-black text-violet-800 border border-violet-200">ORG</span>;
+}
+function TogglePill({ active, onClick, children, testId }: { active: boolean; onClick: () => void; children: React.ReactNode; testId?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid={testId}
+      className={`h-10 rounded-xl border px-3 text-xs font-semibold transition-colors ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-muted/30 text-muted-foreground"}`}
+    >
+      {children}
+    </button>
+  );
 }
 function FunBadgePill({ value }: { value?: FunBadge }) {
   const badge = getFunBadge(value);
@@ -304,26 +316,28 @@ function ProfileDialog({
 
         <div className="flex flex-col gap-4">
           <div className="flex items-start gap-4">
-            <button type="button" onClick={() => photoGalleryInput.current?.click()} className="relative group pt-1 shrink-0">
-              <PlayerAvatar player={draft} size="lg" />
-              <span className="absolute inset-0 bg-slate-900/35 rounded-full text-white hidden group-hover:flex items-center justify-center">
-                <Camera className="w-5 h-5" />
-              </span>
-            </button>
+            <div className="shrink-0 flex flex-col items-center gap-1.5">
+              <button type="button" onClick={() => photoGalleryInput.current?.click()} className="relative group pt-1">
+                <PlayerAvatar player={draft} size="lg" />
+                <span className="absolute inset-0 bg-slate-900/35 rounded-full text-white hidden group-hover:flex items-center justify-center">
+                  <Camera className="w-5 h-5" />
+                </span>
+              </button>
+              <div className="grid grid-cols-2 gap-1 w-full">
+                <Button type="button" variant="outline" size="sm" className="h-7 px-1.5 text-[10px]" onClick={() => photoCameraInput.current?.click()}>
+                  <Camera className="w-3 h-3" />
+                </Button>
+                <Button type="button" variant="outline" size="sm" className="h-7 px-1.5 text-[10px]" onClick={() => photoGalleryInput.current?.click()}>
+                  <ImageIcon className="w-3 h-3" />
+                </Button>
+              </div>
+              {draft.profilePhoto && <Button type="button" variant="ghost" size="sm" className="h-6 px-1.5 text-[10px] text-muted-foreground" onClick={() => updateDraft({ profilePhoto: undefined })}><Trash2 className="w-3 h-3 mr-1" /> Remove</Button>}
+            </div>
             <div className="flex-1 space-y-2 min-w-0">
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Name</Label>
               <Input value={draft.name} onChange={e => updateDraft({ name: e.target.value })} />
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">AKA / Nickname</Label>
               <Input value={draft.aka || ""} placeholder="Optional" onChange={e => updateDraft({ aka: e.target.value })} />
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => photoCameraInput.current?.click()}>
-                  <Camera className="w-3.5 h-3.5 mr-1" /> Camera
-                </Button>
-                <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => photoGalleryInput.current?.click()}>
-                  <ImageIcon className="w-3.5 h-3.5 mr-1" /> Gallery
-                </Button>
-                {draft.profilePhoto && <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => updateDraft({ profilePhoto: undefined })}><Trash2 className="w-3.5 h-3.5 mr-1" /> Remove</Button>}
-              </div>
               <input
                 ref={photoCameraInput}
                 type="file"
@@ -354,34 +368,42 @@ function ProfileDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-[1.2fr_0.75fr_1fr] gap-2 items-end">
-            <div className="space-y-1.5">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Gender</Label>
-              <Select value={draft.gender} onValueChange={v => updateDraft({ gender: v as Gender })}>
-                <SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2 items-end">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Gender</Label>
+                <Select value={draft.gender} onValueChange={v => updateDraft({ gender: v as Gender })}>
+                  <SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Player Vibe</Label>
+                <Select value={draft.funBadge ?? "none"} onValueChange={value => updateDraft({ funBadge: value === "none" ? undefined : value as FunBadge })}>
+                  <SelectTrigger className="h-10 rounded-xl bg-background/70">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {FUN_BADGES.map(badge => (
+                      <SelectItem key={badge.value} value={badge.value}>{badge.emoji} {badge.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <label className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 cursor-pointer">
-              <Checkbox
-                checked={!!draft.isNew}
-                onCheckedChange={checked => updateDraft({ isNew: checked === true })}
-                className="w-3.5 h-3.5 rounded border-2"
-              />
-              <NewBadge />
-            </label>
-            <label className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 cursor-pointer">
-              <Checkbox
-                checked={!!draft.isOrganizer}
-                onCheckedChange={checked => updateDraft({ isOrganizer: checked === true })}
-                className="w-3.5 h-3.5 rounded border-2"
-              />
-              <ORGBadge />
-            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <TogglePill active={!!draft.isNew} onClick={() => updateDraft({ isNew: !draft.isNew })}>
+                New Player
+              </TogglePill>
+              <TogglePill active={!!draft.isOrganizer} onClick={() => updateDraft({ isOrganizer: !draft.isOrganizer })}>
+                Organizer
+              </TogglePill>
+            </div>
           </div>
 
           <div className="relative">
@@ -396,29 +418,9 @@ function ProfileDialog({
             {STAT_FIELDS.map(({ key, label }) => (
               <StatControl key={key} label={label} value={draft[key]} onChange={value => updateDraft({ [key]: value } as Partial<RoomPlayer>)} />
             ))}
+            <StatControl label="Team Play" value={draft.teamPlay} max={3} onChange={value => updateDraft({ teamPlay: value })} />
+            <div />
           </div>
-
-          <div className="rounded-xl border border-border p-3 bg-muted/40 space-y-2">
-            <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Team Play</Label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { value: 1, label: "Low" },
-                { value: 2, label: "Normal" },
-                { value: 3, label: "High" },
-              ].map(option => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => updateDraft({ teamPlay: option.value })}
-                  className={`h-9 rounded-xl border text-xs font-black transition-colors ${draft.teamPlay === option.value ? "bg-primary text-primary-foreground border-primary" : "bg-background/70 border-border text-muted-foreground"}`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-
 
           <div className="rounded-xl border border-border p-3 bg-muted/30 space-y-2">
             <div className="flex items-center justify-between">
@@ -428,16 +430,21 @@ function ProfileDialog({
             <div className="grid grid-cols-2 gap-2">
               {SPECIAL_ABILITIES.map(ability => {
                 const selected = Boolean(draft[ability.key]);
+                const Icon = ability.icon ?? Star;
                 return (
-                  <label key={ability.key} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 cursor-pointer transition-colors ${selected ? "border-amber-400 bg-amber-50" : "border-border bg-background/70"}`}>
-                    <Checkbox
-                      checked={selected}
-                      onCheckedChange={checked => updateDraft({ [ability.key]: checked === true } as Partial<RoomPlayer>)}
-                      className="w-4 h-4 rounded border-2"
-                    />
-                    <span className="text-sm font-black leading-tight flex-1 min-w-0 truncate">{selected ? "✓ " : ""}{ability.label}</span>
-                    <AbilityBadge ability={ability} selected={selected} />
-                  </label>
+                  <button
+                    key={ability.key}
+                    type="button"
+                    onClick={() => updateDraft({ [ability.key]: !selected } as Partial<RoomPlayer>)}
+                    className={`flex h-9 items-center gap-2 rounded-xl border px-2.5 text-left transition-colors ${selected ? "border-amber-400 bg-amber-50 text-amber-900" : "border-border bg-background/70 text-foreground"}`}
+                  >
+                    {ability.badge === "GK" ? (
+                      <span className="text-[11px] font-semibold text-amber-700 w-5 text-center">GK</span>
+                    ) : (
+                      <Icon className="w-4 h-4 shrink-0 text-amber-700" />
+                    )}
+                    <span className="text-xs font-medium leading-tight truncate">{ability.label}</span>
+                  </button>
                 );
               })}
             </div>
@@ -446,24 +453,6 @@ function ProfileDialog({
           <div className="rounded-xl border border-border p-3 bg-muted/30 text-[11px] text-muted-foreground font-semibold space-y-1">
             <div className="flex justify-between gap-3"><span>Added</span><span className="text-right text-foreground">{formatDateTime(draft.createdAt)}</span></div>
             <div className="flex justify-between gap-3"><span>Last edited</span><span className="text-right text-foreground">{formatDateTime(draft.updatedAt || draft.createdAt)}</span></div>
-          </div>
-
-          <div className="rounded-xl border border-border p-3 bg-muted/30 space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Player Vibe</Label>
-              <span className="text-[10px] font-bold text-muted-foreground">Optional</span>
-            </div>
-            <Select value={draft.funBadge ?? "none"} onValueChange={value => updateDraft({ funBadge: value === "none" ? undefined : value as FunBadge })}>
-              <SelectTrigger className="h-10 rounded-xl bg-background/70">
-                <SelectValue placeholder="None" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {FUN_BADGES.map(badge => (
-                  <SelectItem key={badge.value} value={badge.value}>{badge.emoji} {badge.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <Button onClick={save} className="h-11 font-black uppercase">Save Profile</Button>
@@ -488,13 +477,8 @@ function PlayerCardBack({ player }: { player: RoomPlayer }) {
   const selectedAbility = abilities.find(a => a.key === selectedAbilityKey) ?? abilities[0];
   return (
     <div className="mt-3 border-t border-border/70 pt-3 space-y-3">
-      <div className="rounded-2xl bg-muted/25 border border-border/70 p-2 shadow-inner">
-        <PlayerRadar player={player} compact />
-      </div>
-
       <div className="space-y-2" onClick={e => e.stopPropagation()}>
         <div className="flex flex-wrap gap-1.5 items-center justify-center">
-          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
           {abilities.length > 0 ? abilities.map(a => (
             <AbilityBadge
               key={a.key}
@@ -504,20 +488,23 @@ function PlayerCardBack({ player }: { player: RoomPlayer }) {
             />
           )) : <span className="text-[10px] font-semibold text-muted-foreground">No special abilities set</span>}
         </div>
-
-        {selectedAbility ? (
-          <div className="mx-auto max-w-[260px] text-center">
-            <div className="text-[11px] font-black text-foreground leading-tight">{selectedAbility.label}</div>
-            <div className="mt-0.5 text-[10px] font-semibold text-muted-foreground leading-snug">{selectedAbility.description}</div>
-          </div>
-        ) : (abilities.length > 0 ? (
-          <div className="text-center text-[10px] font-semibold text-muted-foreground">Tap an ability icon to see what it means.</div>
-        ) : null)}
         {player.funBadge ? (
           <div className="text-center text-[10px] font-semibold text-muted-foreground">
             <FunBadgePill value={player.funBadge} />
           </div>
         ) : null}
+        {selectedAbility ? (
+          <div className="mx-auto max-w-[260px] text-center">
+            <div className="text-[11px] font-semibold text-foreground leading-tight">{selectedAbility.label}</div>
+            <div className="mt-0.5 text-[10px] font-medium text-muted-foreground leading-snug">{selectedAbility.description}</div>
+          </div>
+        ) : (abilities.length > 0 ? (
+          <div className="text-center text-[10px] font-semibold text-muted-foreground">Tap an ability icon to see what it means.</div>
+        ) : null)}
+      </div>
+
+      <div className="rounded-2xl bg-muted/25 border border-border/70 p-2 shadow-inner">
+        <PlayerRadar player={player} compact />
       </div>
     </div>
   );
@@ -618,24 +605,12 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-              <label className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 h-10 cursor-pointer">
-                <Checkbox
-                  checked={isNew}
-                  onCheckedChange={checked => setIsNew(checked === true)}
-                  className="w-3.5 h-3.5 rounded border-2"
-                  data-testid="checkbox-new-player"
-                />
-                <NewBadge />
-              </label>
-              <label className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 h-10 cursor-pointer">
-                <Checkbox
-                  checked={isOrganizer}
-                  onCheckedChange={checked => setIsOrganizer(checked === true)}
-                  className="w-3.5 h-3.5 rounded border-2"
-                  data-testid="checkbox-organizer"
-                />
-                <ORGBadge />
-              </label>
+              <TogglePill active={isNew} onClick={() => setIsNew(!isNew)} testId="checkbox-new-player">
+                New
+              </TogglePill>
+              <TogglePill active={isOrganizer} onClick={() => setIsOrganizer(!isOrganizer)} testId="checkbox-organizer">
+                Organizer
+              </TogglePill>
             </div>
 
             <Button type="submit" className="w-full h-12 mt-1 font-bold uppercase tracking-wide" data-testid="button-add-player">
