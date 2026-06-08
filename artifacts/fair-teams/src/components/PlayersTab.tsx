@@ -69,17 +69,17 @@ const SPECIAL_ABILITIES: { key: AbilityKey; label: string; badge: string; descri
 const FUN_BADGES: { value: FunBadge; label: string; emoji: string; description: string }[] = [
   { value: "loudmouth", label: "Loudmouth", emoji: "📢", description: "Always talking." },
   { value: "warrior", label: "Warrior", emoji: "😤", description: "Maximum effort, every ball." },
-  { value: "samba", label: "Samba", emoji: "🇧🇷", description: "Flair, tricks, and Brazilian-style creativity." },
+  { value: "samba", label: "Samba", emoji: "🇧🇷", description: "Flair and creative skills." },
   { value: "maradoner", label: "Maradoner", emoji: "🥙", description: "Believes every defender can be beaten." },
   { value: "reluctant-gk", label: "Reluctant GK", emoji: "🧤", description: "Needs convincing to play in goal." },
   { value: "first-10", label: "First 10 Minutes", emoji: "🚀", description: "Starts fast, fades later." },
   { value: "always-late", label: "Always Late", emoji: "⏰", description: "Arrives after kickoff." },
-  { value: "unbothered", label: "Unbothered", emoji: "😐", description: "Nothing seems to matter." },
-  { value: "wildcard", label: "Wildcard", emoji: "🎲", description: "Nobody knows which version will show up." },
-  { value: "third-half", label: "Third Half Specialist", emoji: "🍺", description: "World-class after the final whistle." },
+  { value: "unbothered", label: "Unbothered", emoji: "😐", description: "Nothing seems to bother them." },
+  { value: "wildcard", label: "Wildcard", emoji: "🎲", description: "You never know which version shows up." },
+  { value: "third-half", label: "Third Half Specialist", emoji: "🍺", description: "Peak performance after the match." },
   { value: "club-ambassador", label: "Club Ambassador", emoji: "🤝", description: "Welcomes people and keeps the group friendly." },
-  { value: "cfo", label: "CFO", emoji: "💳", description: "Tracks fees, payments, and who still owes money." },
-  { value: "club-chef", label: "Club Chef", emoji: "🔪", description: "Handles food, snacks, and post-match fuel." },
+  { value: "cfo", label: "CFO", emoji: "💳", description: "Tracks payments and reminds everyone." },
+  { value: "club-chef", label: "Club Chef", emoji: "🔪", description: "Keeps the group fed." },
 ];
 
 function getFunBadge(value?: FunBadge) {
@@ -209,7 +209,6 @@ function PlayerTags({ player, includeAbilities = true }: { player: RoomPlayer; i
     <div className="mt-1 flex flex-wrap gap-1 min-h-5">
       {player.isNew && <NewBadge />}
       {player.isOrganizer && <ORGBadge />}
-      {includeAbilities && player.funBadge && <FunBadgePill value={player.funBadge} />}
       {includeAbilities && abilities.map(a => <AbilityBadge key={a.key} ability={a} />)}
     </div>
   );
@@ -355,11 +354,11 @@ function ProfileDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
-            <div className="space-y-2">
+          <div className="grid grid-cols-[1.2fr_0.75fr_1fr] gap-2 items-end">
+            <div className="space-y-1.5">
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Gender</Label>
               <Select value={draft.gender} onValueChange={v => updateDraft({ gender: v as Gender })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
@@ -367,34 +366,31 @@ function ProfileDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-24 rounded-xl bg-primary text-primary-foreground p-3 flex flex-col items-center justify-center">
-              <span className="text-[9px] uppercase font-bold opacity-70 leading-none">OVR</span>
-              <span className="text-3xl font-black leading-none">{overall}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3 cursor-pointer">
+            <label className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 cursor-pointer">
               <Checkbox
                 checked={!!draft.isNew}
                 onCheckedChange={checked => updateDraft({ isNew: checked === true })}
-                className="w-4 h-4 rounded border-2"
+                className="w-3.5 h-3.5 rounded border-2"
               />
-              <span className="text-sm font-bold flex-1">New</span>
               <NewBadge />
             </label>
-            <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3 cursor-pointer">
+            <label className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 cursor-pointer">
               <Checkbox
                 checked={!!draft.isOrganizer}
                 onCheckedChange={checked => updateDraft({ isOrganizer: checked === true })}
-                className="w-4 h-4 rounded border-2"
+                className="w-3.5 h-3.5 rounded border-2"
               />
-              <span className="text-sm font-bold flex-1">Organizer</span>
               <ORGBadge />
             </label>
           </div>
 
-          <PlayerRadar player={{ ...draft, skill: overall }} />
+          <div className="relative">
+            <PlayerRadar player={{ ...draft, skill: overall }} />
+            <div className="absolute right-3 top-3 rounded-xl bg-primary text-primary-foreground px-3 py-1.5 shadow-sm flex items-center gap-2">
+              <span className="text-[9px] uppercase font-bold opacity-75 leading-none">OVR</span>
+              <span className="text-xl font-black leading-none">{overall}</span>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             {STAT_FIELDS.map(({ key, label }) => (
@@ -402,15 +398,60 @@ function ProfileDialog({
             ))}
           </div>
 
-          <div className="rounded-xl border border-border p-3 bg-muted/40">
-            <StatControl label="Team Play" max={3} value={draft.teamPlay} onChange={value => updateDraft({ teamPlay: value })} />
-            <p className="text-[10px] text-muted-foreground mt-1">1 = low · 2 = average · 3 = high. Soft effect: 0.93 / 1.00 / 1.07.</p>
+          <div className="rounded-xl border border-border p-3 bg-muted/40 space-y-2">
+            <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Team Play</Label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { value: 1, label: "Low" },
+                { value: 2, label: "Normal" },
+                { value: 3, label: "High" },
+              ].map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => updateDraft({ teamPlay: option.value })}
+                  className={`h-9 rounded-xl border text-xs font-black transition-colors ${draft.teamPlay === option.value ? "bg-primary text-primary-foreground border-primary" : "bg-background/70 border-border text-muted-foreground"}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+
+
+          <div className="rounded-xl border border-border p-3 bg-muted/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1"><Star className="w-3 h-3" /> Special abilities</Label>
+              <span className="text-[10px] font-bold text-muted-foreground">Affects OVR</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {SPECIAL_ABILITIES.map(ability => {
+                const selected = Boolean(draft[ability.key]);
+                return (
+                  <label key={ability.key} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 cursor-pointer transition-colors ${selected ? "border-amber-400 bg-amber-50" : "border-border bg-background/70"}`}>
+                    <Checkbox
+                      checked={selected}
+                      onCheckedChange={checked => updateDraft({ [ability.key]: checked === true } as Partial<RoomPlayer>)}
+                      className="w-4 h-4 rounded border-2"
+                    />
+                    <span className="text-sm font-black leading-tight flex-1 min-w-0 truncate">{selected ? "✓ " : ""}{ability.label}</span>
+                    <AbilityBadge ability={ability} selected={selected} />
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border p-3 bg-muted/30 text-[11px] text-muted-foreground font-semibold space-y-1">
+            <div className="flex justify-between gap-3"><span>Added</span><span className="text-right text-foreground">{formatDateTime(draft.createdAt)}</span></div>
+            <div className="flex justify-between gap-3"><span>Last edited</span><span className="text-right text-foreground">{formatDateTime(draft.updatedAt || draft.createdAt)}</span></div>
           </div>
 
           <div className="rounded-xl border border-border p-3 bg-muted/30 space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Fun badge</Label>
-              <span className="text-[10px] font-bold text-muted-foreground">Cosmetic</span>
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Player Vibe</Label>
+              <span className="text-[10px] font-bold text-muted-foreground">Optional</span>
             </div>
             <Select value={draft.funBadge ?? "none"} onValueChange={value => updateDraft({ funBadge: value === "none" ? undefined : value as FunBadge })}>
               <SelectTrigger className="h-10 rounded-xl bg-background/70">
@@ -423,39 +464,6 @@ function ProfileDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="rounded-xl border border-border p-3 bg-muted/30 space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1"><Star className="w-3 h-3" /> Special abilities</Label>
-              <span className="text-[10px] font-bold text-muted-foreground">Optional</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {SPECIAL_ABILITIES.map(ability => {
-                const selected = Boolean(draft[ability.key]);
-                return (
-                  <label
-                    key={ability.key}
-                    className={`flex items-center gap-1.5 rounded-xl border px-2 py-1.5 cursor-pointer active:scale-[0.99] ${
-                      selected ? "border-amber-400 bg-amber-50 shadow-sm" : "border-border bg-background/70"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={selected}
-                      onCheckedChange={checked => updateDraft({ [ability.key]: checked === true } as Partial<RoomPlayer>)}
-                      className="sr-only"
-                    />
-                    <AbilityBadge ability={ability} selected={selected} />
-                    <span className="text-xs font-black leading-tight truncate">{ability.label}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border p-3 bg-muted/30 text-[11px] text-muted-foreground font-semibold space-y-1">
-            <div className="flex justify-between gap-3"><span>Added</span><span className="text-right text-foreground">{formatDateTime(draft.createdAt)}</span></div>
-            <div className="flex justify-between gap-3"><span>Last edited</span><span className="text-right text-foreground">{formatDateTime(draft.updatedAt || draft.createdAt)}</span></div>
           </div>
 
           <Button onClick={save} className="h-11 font-black uppercase">Save Profile</Button>
@@ -484,19 +492,6 @@ function PlayerCardBack({ player }: { player: RoomPlayer }) {
         <PlayerRadar player={player} compact />
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {STAT_FIELDS.map(stat => (
-          <div key={stat.key} className="rounded-md bg-background/70 border border-border/60 px-1 py-1 text-center">
-            <div className="text-[7px] font-black text-muted-foreground tracking-wide leading-none">{stat.short}</div>
-            <div className="text-[11px] font-black text-primary leading-tight mt-0.5">{player[stat.key]}</div>
-          </div>
-        ))}
-        <div className="rounded-md bg-background/70 border border-border/60 px-1 py-1 text-center">
-          <div className="text-[7px] font-black text-muted-foreground tracking-wide leading-none">TP</div>
-          <div className="text-[11px] font-black text-primary leading-tight mt-0.5">{player.teamPlay}</div>
-        </div>
-      </div>
-
       <div className="space-y-2" onClick={e => e.stopPropagation()}>
         <div className="flex flex-wrap gap-1.5 items-center justify-center">
           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
@@ -511,13 +506,18 @@ function PlayerCardBack({ player }: { player: RoomPlayer }) {
         </div>
 
         {selectedAbility ? (
-          <div className="mx-auto max-w-[260px] rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-center shadow-sm">
-            <div className="text-[11px] font-black text-amber-900 leading-tight">{selectedAbility.label}</div>
-            <div className="mt-0.5 text-[10px] font-semibold text-amber-800/85 leading-snug">{selectedAbility.description}</div>
+          <div className="mx-auto max-w-[260px] text-center">
+            <div className="text-[11px] font-black text-foreground leading-tight">{selectedAbility.label}</div>
+            <div className="mt-0.5 text-[10px] font-semibold text-muted-foreground leading-snug">{selectedAbility.description}</div>
           </div>
         ) : (abilities.length > 0 ? (
-          <div className="text-center text-[10px] font-semibold text-muted-foreground">Tap a gold ability icon to see what it means.</div>
+          <div className="text-center text-[10px] font-semibold text-muted-foreground">Tap an ability icon to see what it means.</div>
         ) : null)}
+        {player.funBadge ? (
+          <div className="text-center text-[10px] font-semibold text-muted-foreground">
+            <FunBadgePill value={player.funBadge} />
+          </div>
+        ) : null}
       </div>
     </div>
   );
