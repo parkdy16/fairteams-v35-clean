@@ -1,5 +1,7 @@
 export type Gender = "male" | "female" | "other";
 
+export type FunBadge = "loudmouth" | "warrior" | "magician" | "reluctant-gk" | "first-10" | "always-late";
+
 export interface Player {
   id: string;
   name: string;
@@ -23,6 +25,7 @@ export interface Player {
   isVersatile?: boolean;
   isOrganizer?: boolean;
   isNew?: boolean;
+  funBadge?: FunBadge;
 }
 
 export type AttendanceMap = Record<string, boolean>;

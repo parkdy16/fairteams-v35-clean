@@ -2,11 +2,21 @@ import { FieldSize, Player, Team, TeamColor } from "./types";
 
 const DEFAULT_COLORS: TeamColor[] = ["red", "blue", "lime", "yellow", "orange", "black"];
 
+function specialAbilityBonus(player: Player) {
+  let bonus = 0;
+  if (player.isPlaymaker) bonus += 0.3;
+  if (player.isFinisher) bonus += 0.3;
+  if (player.isSentinel) bonus += 0.3;
+  if (player.isDribbler) bonus += 0.2;
+  if (player.isEngine) bonus += 0.2;
+  if (player.isVersatile) bonus += 0.2;
+  return Math.min(0.7, bonus);
+}
+
 export function getWeightedSkill(player: Player, fieldSize: FieldSize = "medium") {
-  const equal = 1 / 6;
   const weights = fieldSize === "small"
-    ? { attack: 0.22, passing: 0.26, defense: 0.22, speed: 0.10, stamina: 0.10, physical: 0.10 }
-    : { attack: equal, passing: equal, defense: equal, speed: equal, stamina: equal, physical: equal };
+    ? { attack: 0.22, passing: 0.26, defense: 0.20, speed: 0.20, stamina: 0.08, physical: 0.04 }
+    : { attack: 0.22, passing: 0.20, defense: 0.22, speed: 0.20, stamina: 0.12, physical: 0.04 };
 
   const base =
     player.attack * weights.attack +
@@ -17,7 +27,7 @@ export function getWeightedSkill(player: Player, fieldSize: FieldSize = "medium"
     player.physical * weights.physical;
 
   const teamPlayMultiplier = player.teamPlay === 1 ? 0.93 : player.teamPlay === 3 ? 1.07 : 1.0;
-  return Number(Math.min(10, base * teamPlayMultiplier).toFixed(1));
+  return Number(Math.min(10, base * teamPlayMultiplier + specialAbilityBonus(player)).toFixed(1));
 }
 
 function targetSizes(totalPlayers: number, numTeams: number) {

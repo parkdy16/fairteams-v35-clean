@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { RoomPlayer } from "@/lib/localRoster";
 import { calculateOverall, normalizePlayer } from "@/lib/localRoster";
-import { Gender } from "@/lib/types";
+import { FunBadge, Gender } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +64,21 @@ const SPECIAL_ABILITIES: { key: AbilityKey; label: string; badge: string; descri
   { key: "isEngine", label: "Engine", badge: "ENG", description: "High work rate; keeps running, pressing, and covering.", icon: EngineBadgeIcon },
   { key: "isVersatile", label: "Versatile", badge: "ALL", description: "All-rounder who can fill weak spots in a team.", icon: VersatileBadgeIcon },
 ];
+
+
+const FUN_BADGES: { value: FunBadge; label: string; emoji: string; description: string }[] = [
+  { value: "loudmouth", label: "Loudmouth", emoji: "📢", description: "Always talking." },
+  { value: "warrior", label: "Warrior", emoji: "⚔️", description: "Maximum effort, every ball." },
+  { value: "magician", label: "Magician", emoji: "🪄", description: "Unexpected flair and skills." },
+  { value: "reluctant-gk", label: "Reluctant GK", emoji: "🧤", description: "Needs convincing to play in goal." },
+  { value: "first-10", label: "First 10 Minutes", emoji: "🚀", description: "Starts fast, fades later." },
+  { value: "always-late", label: "Always Late", emoji: "⏰", description: "Arrives after kickoff." },
+];
+
+function getFunBadge(value?: FunBadge) {
+  return FUN_BADGES.find(badge => badge.value === value);
+}
+
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "?";
@@ -134,6 +149,11 @@ function NewBadge() {
 function ORGBadge() {
   return <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-black text-violet-800 border border-violet-200">ORG</span>;
 }
+function FunBadgePill({ value }: { value?: FunBadge }) {
+  const badge = getFunBadge(value);
+  if (!badge) return null;
+  return <span title={badge.description} className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black text-emerald-800 border border-emerald-200">{badge.emoji} {badge.label}</span>;
+}
 function AbilityBadge({
   ability,
   onClick,
@@ -182,6 +202,7 @@ function PlayerTags({ player, includeAbilities = true }: { player: RoomPlayer; i
     <div className="mt-1 flex flex-wrap gap-1 min-h-5">
       {player.isNew && <NewBadge />}
       {player.isOrganizer && <ORGBadge />}
+      {player.funBadge && <FunBadgePill value={player.funBadge} />}
       {includeAbilities && abilities.map(a => <AbilityBadge key={a.key} ability={a} />)}
     </div>
   );
@@ -377,6 +398,24 @@ function ProfileDialog({
           <div className="rounded-xl border border-border p-3 bg-muted/40">
             <StatControl label="Team Play" max={3} value={draft.teamPlay} onChange={value => updateDraft({ teamPlay: value })} />
             <p className="text-[10px] text-muted-foreground mt-1">1 = low · 2 = average · 3 = high. Soft effect: 0.93 / 1.00 / 1.07.</p>
+          </div>
+
+          <div className="rounded-xl border border-border p-3 bg-muted/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Fun badge</Label>
+              <span className="text-[10px] font-bold text-muted-foreground">Cosmetic</span>
+            </div>
+            <Select value={draft.funBadge ?? "none"} onValueChange={value => updateDraft({ funBadge: value === "none" ? undefined : value as FunBadge })}>
+              <SelectTrigger className="h-10 rounded-xl bg-background/70">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {FUN_BADGES.map(badge => (
+                  <SelectItem key={badge.value} value={badge.value}>{badge.emoji} {badge.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="rounded-xl border border-border p-3 bg-muted/30 space-y-2">

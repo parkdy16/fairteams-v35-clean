@@ -1,4 +1,4 @@
-import { Gender } from "@/lib/types";
+import { FunBadge, Gender } from "@/lib/types";
 
 export interface RoomPlayer {
   id: string;
@@ -24,6 +24,7 @@ export interface RoomPlayer {
   isVersatile?: boolean;
   isOrganizer?: boolean;
   isNew?: boolean;
+  funBadge?: FunBadge;
   attending: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -46,6 +47,17 @@ function clamp(num: unknown, min: number, max: number, fallback: number) {
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
+function specialAbilityBonus(player: Partial<RoomPlayer>) {
+  let bonus = 0;
+  if (player.isPlaymaker) bonus += 0.3;
+  if (player.isFinisher) bonus += 0.3;
+  if (player.isSentinel) bonus += 0.3;
+  if (player.isDribbler) bonus += 0.2;
+  if (player.isEngine) bonus += 0.2;
+  if (player.isVersatile) bonus += 0.2;
+  return Math.min(0.7, bonus);
+}
+
 export function calculateOverall(player: Partial<RoomPlayer>) {
   const attack = clamp(player.attack, 1, 10, clamp(player.skill, 0, 10, 5));
   const defense = clamp(player.defense, 1, 10, clamp(player.skill, 0, 10, 5));
@@ -55,9 +67,21 @@ export function calculateOverall(player: Partial<RoomPlayer>) {
   const physical = clamp(player.physical, 1, 10, 5);
   const teamPlay = clamp(player.teamPlay, 1, 3, 2);
 
-  const baseOverall = (attack + defense + speed + passing + stamina + physical) / 6;
+  // Casual football OVA: football skills matter most; raw strength is only a small tie-breaker.
+  const baseOverall =
+    attack * 0.22 +
+    defense * 0.22 +
+    passing * 0.20 +
+    speed * 0.20 +
+    stamina * 0.12 +
+    physical * 0.04;
   const teamPlayMultiplier = teamPlay === 1 ? 0.93 : teamPlay === 3 ? 1.07 : 1.0;
-  return Math.round(Math.min(10, baseOverall * teamPlayMultiplier) * 10) / 10;
+  const overall = baseOverall * teamPlayMultiplier + specialAbilityBonus(player);
+  return Math.round(Math.min(10, overall) * 10) / 10;
+}
+
+function isFunBadge(value: unknown): value is FunBadge {
+  return value === "loudmouth" || value === "warrior" || value === "magician" || value === "reluctant-gk" || value === "first-10" || value === "always-late";
 }
 
 export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string }, index = 0): RoomPlayer {
@@ -86,6 +110,7 @@ export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string },
     isVersatile: Boolean(player.isVersatile ?? false),
     isOrganizer: Boolean(player.isOrganizer ?? false),
     isNew: Boolean(player.isNew ?? false),
+    funBadge: isFunBadge(player.funBadge) ? player.funBadge : undefined,
     attending: Boolean(player.attending ?? false),
     createdAt: player.createdAt || new Date().toISOString(),
     updatedAt: player.updatedAt || player.createdAt || new Date().toISOString(),
@@ -121,8 +146,8 @@ export function escapeCsv(value: unknown) {
 }
 
 export function playersToCsv(players: RoomPlayer[]) {
-  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isPlaymaker", "isFinisher", "isDribbler", "isSentinel", "isEngine", "isVersatile", "isOrganizer", "isNew", "attending", "createdAt", "updatedAt"];
-  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isPlaymaker ? "yes" : "no", p.isFinisher ? "yes" : "no", p.isDribbler ? "yes" : "no", p.isSentinel ? "yes" : "no", p.isEngine ? "yes" : "no", p.isVersatile ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.attending ? "yes" : "no", p.createdAt, p.updatedAt || ""]);
+  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isPlaymaker", "isFinisher", "isDribbler", "isSentinel", "isEngine", "isVersatile", "isOrganizer", "isNew", "funBadge", "attending", "createdAt", "updatedAt"];
+  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isPlaymaker ? "yes" : "no", p.isFinisher ? "yes" : "no", p.isDribbler ? "yes" : "no", p.isSentinel ? "yes" : "no", p.isEngine ? "yes" : "no", p.isVersatile ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.funBadge || "", p.attending ? "yes" : "no", p.createdAt, p.updatedAt || ""]);
   return [headers, ...rows].map(row => row.map(escapeCsv).join(",")).join("\n");
 }
 
@@ -188,6 +213,7 @@ export function csvToPlayers(csvText: string): RoomPlayer[] {
       isVersatile: parseBoolean(get("isversatile") || get("versatile")),
       isOrganizer: parseBoolean(get("isorganizer") || get("organizer") || get("org")),
       isNew: parseBoolean(get("isnew") || get("new")),
+      funBadge: isFunBadge(get("funbadge") || get("funBadge") || get("badge")) ? (get("funbadge") || get("funBadge") || get("badge")) as FunBadge : undefined,
       attending: parseBoolean(get("attending")),
       createdAt: get("createdat") || undefined,
       updatedAt: get("updatedat") || undefined,
