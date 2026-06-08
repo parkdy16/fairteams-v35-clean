@@ -420,8 +420,8 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
     <div className="flex flex-col gap-3">
       {/* Controls */}
       <div className="bg-card border border-border px-3 py-2.5 rounded-xl shadow-sm flex flex-col gap-2">
-        <div className="flex items-end gap-2">
-          <div className="flex flex-col gap-1 w-[5.75rem] shrink-0">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-1 min-w-0">
             <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Teams</Label>
             <Select value={numTeams.toString()} onValueChange={v => setNumTeams(parseInt(v))}>
               <SelectTrigger className="h-10 px-2 py-0 font-bold text-[13px] leading-normal [&>span]:leading-normal" data-testid="select-num-teams">
@@ -435,7 +435,7 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
             </Select>
           </div>
 
-          <div className="flex flex-col gap-1 w-[7.5rem] shrink-0">
+          <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-1">
               <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Field Size</Label>
               <button type="button" onClick={() => setShowFieldHelp(v => !v)} className="text-muted-foreground hover:text-primary" title="What does Field Size mean?" data-testid="button-field-help">
@@ -455,7 +455,7 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
           </div>
 
           <Button
-            className={`h-9 px-3 font-black uppercase tracking-wide text-[13px] shadow-sm flex-1 min-w-0 bg-[#22C55E] text-white hover:bg-[#16A34A] transition-all ${isGenerating ? "ring-4 ring-emerald-300/45 shadow-lg shadow-emerald-400/25" : ""}`}
+            className={`col-span-2 h-10 w-full px-4 font-black uppercase tracking-wide text-[13px] shadow-sm bg-[#22C55E] text-white hover:bg-[#16A34A] transition-all ${isGenerating ? "ring-4 ring-emerald-300/45 shadow-lg shadow-emerald-400/25" : ""}`}
             onClick={() => handleGenerate(false)}
             disabled={isGenerating}
             data-testid="button-generate"
