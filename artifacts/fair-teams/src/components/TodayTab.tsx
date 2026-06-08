@@ -100,13 +100,15 @@ export function TodayTab({ players, setPlayers }: { players: RoomPlayer[]; setPl
               />
               <div className="flex flex-col min-w-0 flex-1">
                 <div className={`font-bold text-xs truncate leading-tight ${player.attending ? "text-primary" : "text-foreground"}`}>{displayName(player)}</div>
-                {(player.isNew || player.isGoalkeeper || player.isOrganizer) && (
-                  <div className="mt-0.5 flex flex-wrap gap-1">
-                    {player.isNew && <NewBadge />}{player.isGoalkeeper && <GKBadge />}
-                    {player.isOrganizer && <ORGBadge />}
-                  </div>
-                )}
-                <span className="text-[10px] text-muted-foreground font-medium">OVR {player.skill} · TP {player.teamPlay ?? 2}</span>
+                <div className="mt-0.5 flex items-center gap-1 min-w-0">
+                  <span className="text-[10px] text-muted-foreground font-medium shrink-0">OVR {player.skill} · TP {player.teamPlay ?? 2}</span>
+                  {(player.isNew || player.isGoalkeeper || player.isOrganizer) && (
+                    <div className="flex flex-wrap gap-1 min-w-0">
+                      {player.isNew && <NewBadge />}{player.isGoalkeeper && <GKBadge />}
+                      {player.isOrganizer && <ORGBadge />}
+                    </div>
+                  )}
+                </div>
               </div>
             </label>
           ))}
