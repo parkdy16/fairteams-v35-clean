@@ -16,10 +16,17 @@ export interface RoomPlayer {
   teamPlay: number;    // 1-3 (low / average / high)
   profilePhoto?: string;
   isGoalkeeper?: boolean;
+  isPlaymaker?: boolean;
+  isFinisher?: boolean;
+  isDribbler?: boolean;
+  isSentinel?: boolean;
+  isEngine?: boolean;
+  isVersatile?: boolean;
   isOrganizer?: boolean;
   isNew?: boolean;
   attending: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 const STORAGE_KEY = "fair-teams-local-roster-v1-profiles";
@@ -49,8 +56,8 @@ export function calculateOverall(player: Partial<RoomPlayer>) {
   const teamPlay = clamp(player.teamPlay, 1, 3, 2);
 
   const baseOverall = (attack + defense + speed + passing + stamina + physical) / 6;
-  const teamPlayMultiplier = teamPlay === 1 ? 0.8 : teamPlay === 3 ? 1.2 : 1.0;
-  return Math.round(baseOverall * teamPlayMultiplier * 10) / 10;
+  const teamPlayMultiplier = teamPlay === 1 ? 0.93 : teamPlay === 3 ? 1.07 : 1.0;
+  return Math.round(Math.min(10, baseOverall * teamPlayMultiplier) * 10) / 10;
 }
 
 export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string }, index = 0): RoomPlayer {
@@ -71,10 +78,17 @@ export function normalizePlayer(player: Partial<RoomPlayer> & { name?: string },
     teamPlay: clamp(player.teamPlay, 1, 3, 2),
     profilePhoto: typeof player.profilePhoto === "string" ? player.profilePhoto : undefined,
     isGoalkeeper: Boolean(player.isGoalkeeper ?? false),
+    isPlaymaker: Boolean(player.isPlaymaker ?? false),
+    isFinisher: Boolean(player.isFinisher ?? false),
+    isDribbler: Boolean(player.isDribbler ?? false),
+    isSentinel: Boolean(player.isSentinel ?? false),
+    isEngine: Boolean(player.isEngine ?? false),
+    isVersatile: Boolean(player.isVersatile ?? false),
     isOrganizer: Boolean(player.isOrganizer ?? false),
     isNew: Boolean(player.isNew ?? false),
     attending: Boolean(player.attending ?? false),
     createdAt: player.createdAt || new Date().toISOString(),
+    updatedAt: player.updatedAt || player.createdAt || new Date().toISOString(),
   };
   normalized.skill = calculateOverall(normalized);
   return normalized;
@@ -107,8 +121,8 @@ export function escapeCsv(value: unknown) {
 }
 
 export function playersToCsv(players: RoomPlayer[]) {
-  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isOrganizer", "isNew", "attending"];
-  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.attending ? "yes" : "no"]);
+  const headers = ["name", "aka", "gender", "overall", "attack", "defense", "speed", "passing", "stamina", "strength", "teamPlay", "isGoalkeeper", "isPlaymaker", "isFinisher", "isDribbler", "isSentinel", "isEngine", "isVersatile", "isOrganizer", "isNew", "attending", "createdAt", "updatedAt"];
+  const rows = players.map(p => [p.name, p.aka || "", p.gender, p.skill, p.attack, p.defense, p.speed, p.passing, p.stamina, p.physical, p.teamPlay, p.isGoalkeeper ? "yes" : "no", p.isPlaymaker ? "yes" : "no", p.isFinisher ? "yes" : "no", p.isDribbler ? "yes" : "no", p.isSentinel ? "yes" : "no", p.isEngine ? "yes" : "no", p.isVersatile ? "yes" : "no", p.isOrganizer ? "yes" : "no", p.isNew ? "yes" : "no", p.attending ? "yes" : "no", p.createdAt, p.updatedAt || ""]);
   return [headers, ...rows].map(row => row.map(escapeCsv).join(",")).join("\n");
 }
 
@@ -166,9 +180,17 @@ export function csvToPlayers(csvText: string): RoomPlayer[] {
       physical: Number(get("strength") || get("physical") || 5),
       teamPlay: Number(get("teamplay") || get("teamPlay") || get("weakfoot") || get("weakFoot") || 2),
       isGoalkeeper: parseBoolean(get("isgoalkeeper") || get("goalkeeper") || get("gk")),
+      isPlaymaker: parseBoolean(get("isplaymaker") || get("playmaker")),
+      isFinisher: parseBoolean(get("isfinisher") || get("finisher")),
+      isDribbler: parseBoolean(get("isdribbler") || get("dribbler")),
+      isSentinel: parseBoolean(get("issentinel") || get("sentinel")),
+      isEngine: parseBoolean(get("isengine") || get("engine")),
+      isVersatile: parseBoolean(get("isversatile") || get("versatile")),
       isOrganizer: parseBoolean(get("isorganizer") || get("organizer") || get("org")),
       isNew: parseBoolean(get("isnew") || get("new")),
       attending: parseBoolean(get("attending")),
+      createdAt: get("createdat") || undefined,
+      updatedAt: get("updatedat") || undefined,
     }, index);
   }).filter(p => p.name);
 }

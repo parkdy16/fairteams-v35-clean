@@ -9,20 +9,61 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { UserMinus, Plus, Star, Zap, Search, X, Camera, Image as ImageIcon, Trash2, Pencil, Shield, Footprints, Activity, Dumbbell, Target, Share2 } from "lucide-react";
+import { UserMinus, Plus, Star, Zap, Search, X, Camera, Image as ImageIcon, Trash2, Pencil, Shield, Activity, Dumbbell, Target, Share2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from "recharts";
 
 const STAT_FIELDS = [
-  { key: "attack", label: "Attack", icon: Target },
-  { key: "defense", label: "Defense", icon: Shield },
-  { key: "speed", label: "Speed", icon: Zap },
-  { key: "passing", label: "Passing", icon: Share2 },
-  { key: "stamina", label: "Stamina", icon: Activity },
-  { key: "physical", label: "Strength", icon: Dumbbell },
+  { key: "attack", label: "Attack", short: "ATK", icon: Target },
+  { key: "defense", label: "Defense", short: "DEF", icon: Shield },
+  { key: "speed", label: "Speed", short: "SPD", icon: Zap },
+  { key: "passing", label: "Passing", short: "PAS", icon: Share2 },
+  { key: "stamina", label: "Stamina", short: "STA", icon: Activity },
+  { key: "physical", label: "Strength", short: "STR", icon: Dumbbell },
 ] as const;
 
-type StatKey = typeof STAT_FIELDS[number]["key"];
+
+function EngineBadgeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 9h7l2 2h2v5h-2l-1.4 2H8l-1.5-2H4v-5h3z" />
+      <path d="M9 9V6h5" />
+      <path d="M10 6V4" />
+      <path d="M13 6V4" />
+      <path d="M18 12h2" />
+      <path d="M4 13H2" />
+    </svg>
+  );
+}
+
+function VersatileBadgeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 4v16" />
+      <path d="M4 12h16" />
+      <path d="M12 4l-3 3" />
+      <path d="M12 4l3 3" />
+      <path d="M20 12l-3-3" />
+      <path d="M20 12l-3 3" />
+      <path d="M12 20l-3-3" />
+      <path d="M12 20l3-3" />
+      <path d="M4 12l3-3" />
+      <path d="M4 12l3 3" />
+    </svg>
+  );
+}
+
+type AbilityKey = "isGoalkeeper" | "isPlaymaker" | "isFinisher" | "isDribbler" | "isSentinel" | "isEngine" | "isVersatile";
+
+const SPECIAL_ABILITIES: { key: AbilityKey; label: string; badge: string; description: string; icon?: React.ComponentType<{ className?: string }> }[] = [
+  { key: "isGoalkeeper", label: "Goalkeeper", badge: "GK", description: "Comfortable in goal; helps spread keeper options across teams." },
+  { key: "isPlaymaker", label: "Playmaker", badge: "PM", description: "Controls passing and creates chances for teammates.", icon: Share2 },
+  { key: "isFinisher", label: "Finisher", badge: "FIN", description: "Reliable scorer who turns chances into goals.", icon: Target },
+  { key: "isDribbler", label: "Dribbler", badge: "DRB", description: "Strong 1v1 player; keeps the ball under pressure.", icon: Zap },
+  { key: "isSentinel", label: "Sentinel", badge: "SEN", description: "Defensive stopper; tackles, marks, and protects space.", icon: Shield },
+  { key: "isEngine", label: "Engine", badge: "ENG", description: "High work rate; keeps running, pressing, and covering.", icon: EngineBadgeIcon },
+  { key: "isVersatile", label: "Versatile", badge: "ALL", description: "All-rounder who can fill weak spots in a team.", icon: VersatileBadgeIcon },
+];
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "?";
@@ -73,22 +114,77 @@ function PlayerAvatar({ player, size = "md" }: { player: RoomPlayer; size?: "sm"
   );
 }
 
-
-
 function displayName(player: Pick<RoomPlayer, "name" | "aka">) {
   const aka = player.aka?.trim();
   return aka ? `${player.name} (${aka})` : player.name;
 }
 
+function formatDateTime(value?: string) {
+  if (!value) return "Not saved yet";
+  try {
+    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
 function NewBadge() {
   return <span className="inline-flex items-center rounded-full bg-sky-100 px-1.5 py-0.5 text-[9px] font-black text-sky-800 border border-sky-200">NEW</span>;
 }
-function GKBadge() {
-  return <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black text-emerald-800 border border-emerald-200">GK</span>;
+function ORGBadge() {
+  return <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-black text-violet-800 border border-violet-200">ORG</span>;
+}
+function AbilityBadge({
+  ability,
+  onClick,
+  selected = false,
+}: {
+  ability: { badge: string; label: string; icon?: React.ComponentType<{ className?: string }> };
+  onClick?: () => void;
+  selected?: boolean;
+}) {
+  const baseTitle = `${ability.label} (${ability.badge})`;
+  const ringClass = selected ? "border-amber-500 ring-2 ring-amber-300" : "border-amber-300";
+
+  if (ability.badge === "GK") {
+    const className = `inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-800 border shadow-sm ${ringClass} ${onClick ? "cursor-pointer active:scale-95" : "cursor-default"}`;
+    if (onClick) {
+      return (
+        <button type="button" title={baseTitle} aria-label={ability.label} onClick={(e) => { e.stopPropagation(); onClick(); }} className={className}>
+          GK
+        </button>
+      );
+    }
+    return <span title={baseTitle} aria-label={ability.label} className={className}>GK</span>;
+  }
+
+  const Icon = ability.icon ?? Star;
+  const className = `inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700 border shadow-sm ${ringClass} ${onClick ? "cursor-pointer active:scale-95" : "cursor-default"}`;
+
+  if (onClick) {
+    return (
+      <button type="button" title={baseTitle} aria-label={ability.label} onClick={(e) => { e.stopPropagation(); onClick(); }} className={className}>
+        <Icon className="w-3.5 h-3.5 stroke-[3]" />
+      </button>
+    );
+  }
+
+  return (
+    <span title={baseTitle} aria-label={ability.label} className={className}>
+      <Icon className="w-3.5 h-3.5 stroke-[3]" />
+    </span>
+  );
 }
 
-function ORGBadge() {
-  return <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-black text-orange-800 border border-orange-200">ORG</span>;
+function PlayerTags({ player, includeAbilities = true }: { player: RoomPlayer; includeAbilities?: boolean }) {
+  const abilities = SPECIAL_ABILITIES.filter(a => Boolean(player[a.key]));
+  return (
+    <div className="mt-1 flex flex-wrap gap-1 min-h-5">
+      {player.isNew && <NewBadge />}
+      {player.isOrganizer && <ORGBadge />}
+      {includeAbilities && abilities.map(a => <AbilityBadge key={a.key} ability={a} />)}
+    </div>
+  );
 }
 
 function StatControl({ label, value, max = 10, onChange }: { label: string; value: number; max?: number; onChange: (value: number) => void }) {
@@ -110,7 +206,7 @@ function StatControl({ label, value, max = 10, onChange }: { label: string; valu
   );
 }
 
-function PlayerRadar({ player }: { player: RoomPlayer }) {
+function PlayerRadar({ player, compact = false }: { player: RoomPlayer; compact?: boolean }) {
   const data = useMemo(() => [
     { stat: "Attack", value: player.attack },
     { stat: "Passing", value: player.passing },
@@ -121,11 +217,11 @@ function PlayerRadar({ player }: { player: RoomPlayer }) {
   ], [player]);
 
   return (
-    <div className="h-52 w-full bg-muted/40 rounded-xl border border-border p-2">
+    <div className={`${compact ? "h-36" : "h-52"} w-full bg-muted/40 rounded-xl border border-border p-2`}>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart data={data} outerRadius="72%">
           <PolarGrid />
-          <PolarAngleAxis dataKey="stat" tick={{ fontSize: 10, fontWeight: 700 }} />
+          <PolarAngleAxis dataKey="stat" tick={{ fontSize: compact ? 8 : 10, fontWeight: 700 }} />
           <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
           <Radar dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.35} strokeWidth={2} />
         </RadarChart>
@@ -163,14 +259,14 @@ function ProfileDialog({
   }, [autoOpen, player, onAutoOpenHandled]);
 
   const save = () => {
-    onUpdate({ ...draft, skill: overall });
+    onUpdate({ ...draft, skill: overall, updatedAt: new Date().toISOString() });
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (next) setDraft(normalizePlayer(player)); }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="w-8 h-8 rounded-full" title="Edit player" data-testid={`profile-${player.id}`}>
+        <Button variant="outline" size="icon" className="w-8 h-8 rounded-full" title="Edit player" data-testid={`profile-${player.id}`} onClick={e => e.stopPropagation()}>
           <Pencil className="w-4 h-4" />
         </Button>
       </DialogTrigger>
@@ -180,21 +276,21 @@ function ProfileDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <button type="button" onClick={() => photoGalleryInput.current?.click()} className="relative group">
+          <div className="flex items-start gap-4">
+            <button type="button" onClick={() => photoGalleryInput.current?.click()} className="relative group pt-1 shrink-0">
               <PlayerAvatar player={draft} size="lg" />
               <span className="absolute inset-0 bg-slate-900/35 rounded-full text-white hidden group-hover:flex items-center justify-center">
                 <Camera className="w-5 h-5" />
               </span>
             </button>
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-2 min-w-0">
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Name</Label>
               <Input value={draft.name} onChange={e => updateDraft({ name: e.target.value })} />
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">AKA / Nickname</Label>
               <Input value={draft.aka || ""} placeholder="Optional" onChange={e => updateDraft({ aka: e.target.value })} />
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => photoCameraInput.current?.click()}>
-                  <Camera className="w-3.5 h-3.5 mr-1" /> Take Photo
+                  <Camera className="w-3.5 h-3.5 mr-1" /> Camera
                 </Button>
                 <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => photoGalleryInput.current?.click()}>
                   <ImageIcon className="w-3.5 h-3.5 mr-1" /> Gallery
@@ -231,7 +327,7 @@ function ProfileDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
             <div className="space-y-2">
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Gender</Label>
               <Select value={draft.gender} onValueChange={v => updateDraft({ gender: v as Gender })}>
@@ -243,7 +339,14 @@ function ProfileDialog({
                 </SelectContent>
               </Select>
             </div>
-            <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3 cursor-pointer self-end min-h-12">
+            <div className="w-24 rounded-xl bg-primary text-primary-foreground p-3 flex flex-col items-center justify-center">
+              <span className="text-[9px] uppercase font-bold opacity-70 leading-none">OVR</span>
+              <span className="text-3xl font-black leading-none">{overall}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3 cursor-pointer">
               <Checkbox
                 checked={!!draft.isNew}
                 onCheckedChange={checked => updateDraft({ isNew: checked === true })}
@@ -252,24 +355,7 @@ function ProfileDialog({
               <span className="text-sm font-bold flex-1">New</span>
               <NewBadge />
             </label>
-          </div>
-
-          <div className="rounded-xl bg-primary text-primary-foreground p-3 flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold opacity-70">Overall</span>
-            <span className="text-3xl font-black leading-none">{overall}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-3 cursor-pointer">
-              <Checkbox
-                checked={!!draft.isGoalkeeper}
-                onCheckedChange={checked => updateDraft({ isGoalkeeper: checked === true })}
-                className="w-4 h-4 rounded border-2"
-              />
-              <span className="text-sm font-bold flex-1">Goalkeeper</span>
-              <GKBadge />
-            </label>
-            <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-3 cursor-pointer">
+            <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3 cursor-pointer">
               <Checkbox
                 checked={!!draft.isOrganizer}
                 onCheckedChange={checked => updateDraft({ isOrganizer: checked === true })}
@@ -290,7 +376,35 @@ function ProfileDialog({
 
           <div className="rounded-xl border border-border p-3 bg-muted/40">
             <StatControl label="Team Play" max={3} value={draft.teamPlay} onChange={value => updateDraft({ teamPlay: value })} />
-            <p className="text-[10px] text-muted-foreground mt-1">1 = low · 2 = average · 3 = high</p>
+            <p className="text-[10px] text-muted-foreground mt-1">1 = low · 2 = average · 3 = high. Soft effect: 0.93 / 1.00 / 1.07.</p>
+          </div>
+
+          <div className="rounded-xl border border-border p-3 bg-muted/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1"><Star className="w-3 h-3" /> Special abilities</Label>
+              <span className="text-[10px] font-bold text-muted-foreground">Optional</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {SPECIAL_ABILITIES.map(ability => (
+                <label key={ability.key} className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 cursor-pointer">
+                  <Checkbox
+                    checked={Boolean(draft[ability.key])}
+                    onCheckedChange={checked => updateDraft({ [ability.key]: checked === true } as Partial<RoomPlayer>)}
+                    className="w-4 h-4 rounded border-2"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-black leading-tight">{ability.label}</div>
+                    <div className="text-[10px] text-muted-foreground font-semibold truncate">{ability.description}</div>
+                  </div>
+                  <AbilityBadge ability={ability} />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border p-3 bg-muted/30 text-[11px] text-muted-foreground font-semibold space-y-1">
+            <div className="flex justify-between gap-3"><span>Added</span><span className="text-right text-foreground">{formatDateTime(draft.createdAt)}</span></div>
+            <div className="flex justify-between gap-3"><span>Last edited</span><span className="text-right text-foreground">{formatDateTime(draft.updatedAt || draft.createdAt)}</span></div>
           </div>
 
           <Button onClick={save} className="h-11 font-black uppercase">Save Profile</Button>
@@ -309,21 +423,67 @@ function OverallBadge({ player }: { player: RoomPlayer }) {
   );
 }
 
+function PlayerCardBack({ player }: { player: RoomPlayer }) {
+  const abilities = SPECIAL_ABILITIES.filter(a => Boolean(player[a.key]));
+  const [selectedAbilityKey, setSelectedAbilityKey] = useState<AbilityKey | null>(abilities[0]?.key ?? null);
+  const selectedAbility = abilities.find(a => a.key === selectedAbilityKey) ?? abilities[0];
+  return (
+    <div className="mt-3 border-t border-border/70 pt-3 space-y-3">
+      <div className="rounded-2xl bg-muted/25 border border-border/70 p-2 shadow-inner">
+        <PlayerRadar player={player} compact />
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {STAT_FIELDS.map(stat => (
+          <div key={stat.key} className="rounded-md bg-background/70 border border-border/60 px-1 py-1 text-center">
+            <div className="text-[7px] font-black text-muted-foreground tracking-wide leading-none">{stat.short}</div>
+            <div className="text-[11px] font-black text-primary leading-tight mt-0.5">{player[stat.key]}</div>
+          </div>
+        ))}
+        <div className="rounded-md bg-background/70 border border-border/60 px-1 py-1 text-center">
+          <div className="text-[7px] font-black text-muted-foreground tracking-wide leading-none">TP</div>
+          <div className="text-[11px] font-black text-primary leading-tight mt-0.5">{player.teamPlay}</div>
+        </div>
+      </div>
+
+      <div className="space-y-2" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-wrap gap-1.5 items-center justify-center">
+          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+          {abilities.length > 0 ? abilities.map(a => (
+            <AbilityBadge
+              key={a.key}
+              ability={a}
+              selected={selectedAbility?.key === a.key}
+              onClick={() => setSelectedAbilityKey(prev => prev === a.key ? null : a.key)}
+            />
+          )) : <span className="text-[10px] font-semibold text-muted-foreground">No special abilities set</span>}
+        </div>
+
+        {selectedAbility ? (
+          <div className="mx-auto max-w-[260px] rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-center shadow-sm">
+            <div className="text-[11px] font-black text-amber-900 leading-tight">{selectedAbility.label}</div>
+            <div className="mt-0.5 text-[10px] font-semibold text-amber-800/85 leading-snug">{selectedAbility.description}</div>
+          </div>
+        ) : (abilities.length > 0 ? (
+          <div className="text-center text-[10px] font-semibold text-muted-foreground">Tap a gold ability icon to see what it means.</div>
+        ) : null)}
+      </div>
+    </div>
+  );
+}
+
 export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; setPlayers: (players: RoomPlayer[]) => void }) {
   const [name, setName] = useState("");
   const [aka, setAka] = useState("");
   const [gender, setGender] = useState<Gender>("male");
   const [isNew, setIsNew] = useState(false);
-  const [isGoalkeeper, setIsGoalkeeper] = useState(false);
   const [isOrganizer, setIsOrganizer] = useState(false);
-  const [addPhoto, setAddPhoto] = useState<string | undefined>(undefined);
   const [autoEditPlayerId, setAutoEditPlayerId] = useState<string | null>(null);
-  const addPhotoCameraInput = useRef<HTMLInputElement | null>(null);
-  const addPhotoGalleryInput = useRef<HTMLInputElement | null>(null);
+  const [flippedPlayerIds, setFlippedPlayerIds] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
 
   const updatePlayer = (playerId: string, data: Partial<RoomPlayer>) => {
-    setPlayers(players.map(player => player.id === playerId ? normalizePlayer({ ...player, ...data }) : player));
+    setPlayers(players.map(player => player.id === playerId ? normalizePlayer({ ...player, ...data, updatedAt: data.updatedAt || new Date().toISOString() }) : player));
   };
 
   const removePlayer = (playerId: string) => {
@@ -333,6 +493,7 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const now = new Date().toISOString();
     const newPlayer = normalizePlayer({
       id: createPlayerId(),
       roomId: 1,
@@ -347,24 +508,18 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
       stamina: 5,
       physical: 5,
       teamPlay: 2,
-      profilePhoto: addPhoto,
-      isGoalkeeper,
       isOrganizer,
       isNew,
       attending: false,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     });
-    setPlayers([
-      ...players,
-      newPlayer,
-    ]);
+    setPlayers([...players, newPlayer]);
     setAutoEditPlayerId(newPlayer.id);
     setName("");
     setAka("");
     setIsNew(false);
-    setIsGoalkeeper(false);
     setIsOrganizer(false);
-    setAddPhoto(undefined);
   };
 
   const filtered = search.trim()
@@ -374,80 +529,36 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
   return (
     <div className="flex flex-col gap-6">
       <Card className="border-border shadow-sm">
-        <CardContent className="pt-6">
-          <form onSubmit={handleAdd} className="flex flex-col gap-4">
+        <CardContent className="pt-5">
+          <form onSubmit={handleAdd} className="flex flex-col gap-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Player Name</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">Player Name</Label>
                 <Input
                   id="name"
                   placeholder="e.g. Paul"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="h-12 font-medium"
+                  className="h-11 text-sm font-semibold"
                   data-testid="input-player-name"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="aka" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">AKA</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="aka" className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">AKA</Label>
                 <Input
                   id="aka"
                   placeholder="Optional"
                   value={aka}
                   onChange={e => setAka(e.target.value)}
-                  className="h-12 font-medium"
+                  className="h-11 text-sm font-semibold"
                   data-testid="input-player-aka"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-2">
-              <button type="button" onClick={() => addPhotoGalleryInput.current?.click()} className="shrink-0">
-                <div className="w-11 h-11 rounded-full overflow-hidden bg-primary/10 text-primary font-black flex items-center justify-center border border-primary/20">
-                  {addPhoto ? <img src={addPhoto} alt="" className="w-full h-full object-cover" /> : <Camera className="w-4 h-4" />}
-                </div>
-              </button>
-              <div className="flex flex-1 gap-2 min-w-0">
-                <Button type="button" variant="outline" size="sm" className="h-9 flex-1 text-xs font-bold px-2" onClick={() => addPhotoCameraInput.current?.click()}>
-                  <Camera className="w-3.5 h-3.5 mr-1" /> Camera
-                </Button>
-                <Button type="button" variant="outline" size="sm" className="h-9 flex-1 text-xs font-bold px-2" onClick={() => addPhotoGalleryInput.current?.click()}>
-                  <ImageIcon className="w-3.5 h-3.5 mr-1" /> Gallery
-                </Button>
-                {addPhoto && <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setAddPhoto(undefined)} title="Remove photo"><Trash2 className="w-3.5 h-3.5" /></Button>}
-                <input
-                  ref={addPhotoCameraInput}
-                  type="file"
-                  accept="image/*"
-                  capture="user"
-                  className="sr-only"
-                  onChange={async e => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!file) return;
-                    try { setAddPhoto(await fileToSmallDataUrl(file)); }
-                    catch { alert("Could not load that photo."); }
-                  }}
-                />
-                <input
-                  ref={addPhotoGalleryInput}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={async e => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!file) return;
-                    try { setAddPhoto(await fileToSmallDataUrl(file)); }
-                    catch { alert("Could not load that photo."); }
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-[1.15fr_0.9fr_1fr] gap-2">
               <Select value={gender} onValueChange={v => setGender(v as Gender)}>
-                <SelectTrigger className="h-12 rounded-xl border-border bg-muted/30 font-bold" id="gender" data-testid="select-gender">
+                <SelectTrigger className="h-10 rounded-xl border-border bg-muted/30 text-xs font-bold px-2" id="gender" data-testid="select-gender">
                   <SelectValue placeholder="Gender" />
                 </SelectTrigger>
                 <SelectContent>
@@ -456,39 +567,27 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-              <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 h-12 cursor-pointer">
+              <label className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 h-10 cursor-pointer">
                 <Checkbox
                   checked={isNew}
                   onCheckedChange={checked => setIsNew(checked === true)}
-                  className="w-4 h-4 rounded border-2"
+                  className="w-3.5 h-3.5 rounded border-2"
                   data-testid="checkbox-new-player"
                 />
-                <span className="text-sm font-bold flex-1">New</span>
                 <NewBadge />
               </label>
-              <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 h-12 cursor-pointer">
-                <Checkbox
-                  checked={isGoalkeeper}
-                  onCheckedChange={checked => setIsGoalkeeper(checked === true)}
-                  className="w-4 h-4 rounded border-2"
-                  data-testid="checkbox-goalkeeper"
-                />
-                <span className="text-sm font-bold flex-1">GK</span>
-                <GKBadge />
-              </label>
-              <label className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 h-12 cursor-pointer">
+              <label className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 h-10 cursor-pointer">
                 <Checkbox
                   checked={isOrganizer}
                   onCheckedChange={checked => setIsOrganizer(checked === true)}
-                  className="w-4 h-4 rounded border-2"
+                  className="w-3.5 h-3.5 rounded border-2"
                   data-testid="checkbox-organizer"
                 />
-                <span className="text-sm font-bold flex-1">Organizer</span>
                 <ORGBadge />
               </label>
             </div>
 
-            <Button type="submit" className="w-full h-12 mt-2 font-bold uppercase tracking-wide" data-testid="button-add-player">
+            <Button type="submit" className="w-full h-12 mt-1 font-bold uppercase tracking-wide" data-testid="button-add-player">
               <Plus className="w-4 h-4 mr-2" /> Add Player
             </Button>
           </form>
@@ -531,52 +630,66 @@ export function PlayersTab({ players, setPlayers }: { players: RoomPlayer[]; set
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 bg-muted/50 rounded-xl border border-dashed border-border">
-            <p className="text-muted-foreground font-medium text-sm">No players match "{search}"</p>
+            <p className="text-muted-foreground font-medium text-sm">No players match \"{search}\"</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2">
-            {filtered.map(player => (
-              <div key={player.id} className="p-3 bg-card border border-border rounded-xl shadow-sm" data-testid={`player-row-${player.id}`}>
-                <div className="flex items-center gap-3">
-                  <PlayerAvatar player={player} size="xl" />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-black leading-tight text-base break-words">{displayName(player)}</div>
-                    <div className="mt-1 flex flex-wrap gap-1 min-h-5">
-                      {player.isNew && <NewBadge />}
-                      {player.isGoalkeeper && <GKBadge />}
-                      {player.isOrganizer && <ORGBadge />}
+            {filtered.map(player => {
+              const isFlipped = Boolean(flippedPlayerIds[player.id]);
+              return (
+                <div
+                  key={player.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setFlippedPlayerIds(prev => ({ ...prev, [player.id]: !prev[player.id] }))}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setFlippedPlayerIds(prev => ({ ...prev, [player.id]: !prev[player.id] }));
+                    }
+                  }}
+                  className="p-3 bg-card border border-border rounded-xl shadow-sm active:scale-[0.99] transition-transform cursor-pointer"
+                  data-testid={`player-row-${player.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <PlayerAvatar player={player} size="xl" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-black leading-tight text-base break-words">{displayName(player)}</div>
+                      <PlayerTags player={player} includeAbilities={isFlipped} />
+                    </div>
+                    <OverallBadge player={player} />
+                  </div>
+
+                  {isFlipped ? <PlayerCardBack player={player} /> : null}
+
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-2">
+                    <div className="text-[10px] text-muted-foreground font-bold tracking-wide">
+                      {isFlipped ? "Tap card to hide details" : "Tap card for stats"}
+                    </div>
+                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      <ProfileDialog player={player} onUpdate={(data) => updatePlayer(player.id, data)} autoOpen={autoEditPlayerId === player.id} onAutoOpenHandled={() => setAutoEditPlayerId(null)} />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive w-8 h-8 rounded-full" data-testid={`button-remove-${player.id}`}>
+                            <UserMinus className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="max-w-xs rounded-xl">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove Player?</AlertDialogTitle>
+                            <AlertDialogDescription>This will permanently delete {displayName(player)} from the roster.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => removePlayer(player.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
-                  <OverallBadge player={player} />
                 </div>
-
-                <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-2">
-                  <div className="flex gap-3 text-[11px] text-muted-foreground font-black tracking-wide">
-                    <span>ATK {player.attack}</span><span>DEF {player.defense}</span><span>SPD {player.speed}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ProfileDialog player={player} onUpdate={(data) => updatePlayer(player.id, data)} autoOpen={autoEditPlayerId === player.id} onAutoOpenHandled={() => setAutoEditPlayerId(null)} />
-                    <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive w-8 h-8 rounded-full" data-testid={`button-remove-${player.id}`}>
-                        <UserMinus className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="max-w-xs rounded-xl">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remove Player?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete {displayName(player)} from the roster.</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => removePlayer(player.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

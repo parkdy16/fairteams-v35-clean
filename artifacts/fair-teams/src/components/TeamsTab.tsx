@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { RoomPlayer } from "@/lib/localRoster";
 import { FieldSize, Player, Team, TeamColor } from "@/lib/types";
 import { generateTeams, recomputeStats } from "@/lib/teamGenerator";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Shuffle, ArrowLeftRight, Download, HelpCircle, Clock, Pencil, Zap } from "lucide-react";
+import { Shuffle, ArrowLeftRight, Download, HelpCircle, Clock, Pencil, Zap, Sparkles } from "lucide-react";
 import fairTeamsLogo from "@/assets/fairteams-logo.png";
 
 const COLOR_OPTIONS: { value: TeamColor; label: string; hex: string; textHex: string }[] = [
@@ -26,7 +26,7 @@ function GKBadge() {
 }
 
 function ORGBadge() {
-  return <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-black text-orange-800 border border-orange-200">ORG</span>;
+  return <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-black text-violet-800 border border-violet-200">ORG</span>;
 }
 
 function NewBadge() {
@@ -51,6 +51,13 @@ function GenderBadge({ gender }: { gender?: string }) {
 
 const FIELD_SIZE_STORAGE_KEY = "fair-teams-field-size-v1";
 const TEAM_HISTORY_STORAGE_KEY = "fair-teams-team-history-v1";
+
+const TEAM_DRAW_STEPS = [
+  "Spreading strong players…",
+  "Checking teamplay…",
+  "Balancing defense…",
+  "Finalizing teams…",
+];
 
 interface TeamHistoryEntry {
   id: string;
@@ -94,7 +101,9 @@ function toLocalPlayer(p: RoomPlayer): Player {
   return {
     id: p.id, name: p.name, aka: p.aka, gender: p.gender as Player["gender"], skill: p.skill,
     attack: p.attack, defense: p.defense, speed: p.speed, passing: p.passing, stamina: p.stamina, physical: p.physical,
-    teamPlay: p.teamPlay, profilePhoto: p.profilePhoto, isGoalkeeper: p.isGoalkeeper, isOrganizer: p.isOrganizer, isNew: p.isNew,
+    teamPlay: p.teamPlay, profilePhoto: p.profilePhoto, isGoalkeeper: p.isGoalkeeper,
+    isPlaymaker: p.isPlaymaker, isFinisher: p.isFinisher, isDribbler: p.isDribbler, isSentinel: p.isSentinel, isEngine: p.isEngine, isVersatile: p.isVersatile,
+    isOrganizer: p.isOrganizer, isNew: p.isNew,
   };
 }
 
@@ -302,6 +311,10 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [history, setHistory] = useState<TeamHistoryEntry[]>(() => loadTeamHistory());
   const [swap, setSwap] = useState<SwapSelection | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [drawStep, setDrawStep] = useState(0);
+  const [justGenerated, setJustGenerated] = useState(false);
+  const generateTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     localStorage.setItem(FIELD_SIZE_STORAGE_KEY, fieldSize);
@@ -311,22 +324,47 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
     saveTeamHistory(history);
   }, [history]);
 
+  useEffect(() => {
+    if (!isGenerating) return;
+    const interval = window.setInterval(() => {
+      setDrawStep(prev => (prev + 1) % TEAM_DRAW_STEPS.length);
+    }, 260);
+    return () => window.clearInterval(interval);
+  }, [isGenerating]);
+
+  useEffect(() => {
+    return () => {
+      if (generateTimerRef.current !== null) window.clearTimeout(generateTimerRef.current);
+    };
+  }, []);
+
   const attendingPlayers = players.filter(p => p.attending).map(toLocalPlayer);
 
   const handleGenerate = (shuffleEquals = false) => {
-    if (attendingPlayers.length < 2) return;
+    if (attendingPlayers.length < 2 || isGenerating) return;
     setSwap(null);
+    setJustGenerated(false);
+    setIsGenerating(true);
+    setDrawStep(0);
+
     const nextTeams = generateTeams(attendingPlayers, numTeams, shuffleEquals, fieldSize);
-    setTeams(nextTeams);
-    const entry: TeamHistoryEntry = {
-      id: `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: new Date().toISOString(),
-      fieldSize,
-      numTeams,
-      totalPlayers: attendingPlayers.length,
-      teams: nextTeams,
-    };
-    setHistory(prev => [entry, ...prev].slice(0, 10));
+
+    if (generateTimerRef.current !== null) window.clearTimeout(generateTimerRef.current);
+    generateTimerRef.current = window.setTimeout(() => {
+      setTeams(nextTeams);
+      const entry: TeamHistoryEntry = {
+        id: `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: new Date().toISOString(),
+        fieldSize,
+        numTeams,
+        totalPlayers: attendingPlayers.length,
+        teams: nextTeams,
+      };
+      setHistory(prev => [entry, ...prev].slice(0, 10));
+      setIsGenerating(false);
+      setJustGenerated(true);
+      window.setTimeout(() => setJustGenerated(false), 1200);
+    }, 880);
   };
 
   const handleColorChange = (teamId: string, color: TeamColor) => {
@@ -416,25 +454,45 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
             </Select>
           </div>
 
-          <Button className="h-9 px-4 font-black uppercase tracking-wide text-sm shadow-sm shrink-0 bg-[#22C55E] text-white hover:bg-[#16A34A]" onClick={() => handleGenerate(false)} data-testid="button-generate">
-            Generate
+          <Button
+            className={`h-9 px-4 font-black uppercase tracking-wide text-sm shadow-sm shrink-0 bg-[#22C55E] text-white hover:bg-[#16A34A] transition-all ${isGenerating ? "ring-4 ring-emerald-300/45 shadow-lg shadow-emerald-400/25" : ""}`}
+            onClick={() => handleGenerate(false)}
+            disabled={isGenerating}
+            data-testid="button-generate"
+          >
+            <span className="inline-flex items-center gap-1.5">
+              {isGenerating ? <Shuffle className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {isGenerating ? "Balancing" : "Generate"}
+            </span>
           </Button>
         </div>
+
+        {isGenerating && (
+          <div className="rounded-lg border border-emerald-300/35 bg-emerald-50/80 px-3 py-2 text-[11px] font-black text-emerald-700 shadow-inner">
+            <div className="flex items-center gap-2">
+              <Shuffle className="w-3.5 h-3.5 animate-spin" />
+              <span>{TEAM_DRAW_STEPS[drawStep]}</span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-emerald-100">
+              <div className="h-full w-2/3 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
+          </div>
+        )}
 
         {showFieldHelp && (
           <div className="rounded-lg bg-muted/50 border border-border p-2 text-[10px] leading-snug text-muted-foreground">
             <p><span className="font-black text-foreground">Small:</span> 4v4–5v5. Passing, attack and defense matter more.</p>
             <p><span className="font-black text-foreground">Medium:</span> 6v6–8v8. Balanced weighting.</p>
-            <p><span className="font-black text-foreground">Large:</span> 9v9–11v11. Speed and stamina matter more.</p>
+            <p><span className="font-black text-foreground">Large:</span> all abilities are weighted equally.</p>
           </div>
         )}
 
         {teams.length > 0 && (
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" size="icon" className="h-9 w-9 border-2 shrink-0" onClick={() => handleGenerate(true)} title="Shuffle" data-testid="button-shuffle">
+            <Button variant="outline" size="icon" className="h-9 w-9 border-2 shrink-0" onClick={() => handleGenerate(true)} disabled={isGenerating} title="Shuffle" data-testid="button-shuffle">
               <Shuffle className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9 border-2 shrink-0" onClick={() => void exportTeamsAsJpg(teams, fieldSize)} title="Export as JPG" data-testid="button-export">
+            <Button variant="outline" size="icon" className="h-9 w-9 border-2 shrink-0" onClick={() => void exportTeamsAsJpg(teams, fieldSize)} disabled={isGenerating} title="Export as JPG" data-testid="button-export">
               <Download className="w-4 h-4" />
             </Button>
           </div>
@@ -454,16 +512,20 @@ export function TeamsTab({ players }: { players: RoomPlayer[] }) {
 
       {/* Teams grid — 2 columns */}
       {teams.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {teams.map(team => {
+        <div className={`grid grid-cols-2 gap-2 transition-opacity duration-300 ${isGenerating ? "opacity-50" : "opacity-100"}`}>
+          {teams.map((team, index) => {
             const col = colorFor(team.color);
             const isSwapDest = swap && swap.fromTeamId !== team.id;
 
             return (
               <div
                 key={team.id}
-                className="rounded-xl overflow-hidden border-2 shadow-sm transition-all"
-                style={{ borderColor: isSwapDest ? col.hex : "hsl(var(--border))" }}
+                className={`rounded-xl overflow-hidden border-2 shadow-sm transition-all duration-300 ${justGenerated ? "animate-in fade-in zoom-in-95" : ""}`}
+                style={{
+                  borderColor: isSwapDest ? col.hex : "hsl(var(--border))",
+                  animationDelay: justGenerated ? `${index * 90}ms` : undefined,
+                  boxShadow: justGenerated ? `0 0 0 1px ${col.hex}33, 0 10px 24px ${col.hex}18` : undefined,
+                }}
                 data-testid={`card-team-${team.id}`}
               >
                 {/* Header */}

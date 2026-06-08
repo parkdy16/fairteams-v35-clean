@@ -15,6 +15,12 @@ export interface Player {
   teamPlay: number; // 1-3 (low / average / high)
   profilePhoto?: string;
   isGoalkeeper?: boolean;
+  isPlaymaker?: boolean;
+  isFinisher?: boolean;
+  isDribbler?: boolean;
+  isSentinel?: boolean;
+  isEngine?: boolean;
+  isVersatile?: boolean;
   isOrganizer?: boolean;
   isNew?: boolean;
 }
